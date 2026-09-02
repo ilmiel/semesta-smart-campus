@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "esnext", "moduleResolution": "bundler", "strict": true, "esModuleInterop": true,
+    "skipLibCheck": true, "jsx": "preserve", "allowImportingTsExtensions": true, "noEmit": true,
+    "paths": {
+      "@/server/auth": ["./shim/auth.ts"],
+      "pg": ["./shim/pg.ts"],
+      "nodemailer": ["./shim/nodemailer.ts"],
+      "@/*": ["../src/*"]
+    }
+  },
+  "include": ["./**/*.ts", "../src/**/*.ts"]
+}
