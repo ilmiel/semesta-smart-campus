@@ -11,7 +11,9 @@
     "db:reset": "bash db/migrate.sh --reset",
     "db:uji": "bash db/migrate.sh --uji",
     "auth:migrate": "npx @better-auth/cli migrate",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "uji:api": "tsx --tsconfig tests/tsconfig.asli.json tests/uji_api.ts",
+    "uji:api:shim": "tsx --tsconfig tests/tsconfig.json tests/uji_api.ts"
   },
   "dependencies": {
     "better-auth": "^1.3.0",

@@ -1,0 +1,26 @@
+{
+  "//": [
+    "Uji API dengan driver `pg` SUNGGUHAN — inilah yang harus dipakai sebelum",
+    "Fase 1 (audit §5.2). Bedanya dengan tsconfig.json hanya satu baris: `pg`",
+    "TIDAK dipetakan ke shim.",
+    "",
+    "Kenapa itu penting: shim menjalankan kueri lewat psql dan mengembalikan",
+    "hasil lewat json_agg, yang diam-diam mengubah array Postgres jadi array",
+    "JSON betulan. Perilaku driver asli — array tipe enum kustom yang datang",
+    "sebagai TEKS '{}' — tidak pernah tereproduksi. Itulah yang membuat bug",
+    "otorisasi 3 Sep 2026 lolos dari 80 uji.",
+    "",
+    "Shim yang TETAP dipakai dan memang wajar: @/server/auth (login Google",
+    "tidak bisa diuji otomatis) dan nodemailer (tidak mengirim email sungguhan)."
+  ],
+  "compilerOptions": {
+    "target": "ES2022", "module": "esnext", "moduleResolution": "bundler", "strict": true, "esModuleInterop": true,
+    "skipLibCheck": true, "jsx": "preserve", "allowImportingTsExtensions": true, "noEmit": true,
+    "paths": {
+      "@/server/auth": ["./shim/auth.ts"],
+      "nodemailer": ["./shim/nodemailer.ts"],
+      "@/*": ["../src/*"]
+    }
+  },
+  "include": ["./**/*.ts", "../src/**/*.ts"]
+}

@@ -1,13 +1,23 @@
 /**
- * UJI INTEGRASI ROUTE API — memanggil handler Next.js langsung (tanpa server HTTP)
- * terhadap PostgreSQL sungguhan.
+ * UJI INTEGRASI ROUTE API — memanggil handler Next.js langsung (tanpa server
+ * HTTP) terhadap PostgreSQL sungguhan.
  *
- *   DATABASE_URL=postgres://smartcampus:devpass@127.0.0.1:5432/smartcampus_api \
- *   CRON_SECRET=uji npx tsx --tsconfig tests/tsconfig.json tests/uji_api.ts
+ * PAKAI INI (driver `pg` asli — wajib sebelum Fase 1, audit §5.2):
+ *   DATABASE_URL=postgres://.../smartcampus_api CRON_SECRET=uji npm run uji:api
  *
- * Di sandbox tanpa npm: `pg` diganti tests/shim/pg.ts (psql), auth diganti
- * tests/shim/auth.ts (header x-uji-email). Logika peran, validasi, dan
- * seluruh fungsi DB berjalan nyata.
+ * Cadangan untuk lingkungan tanpa npm install (sandbox):
+ *   npm run uji:api:shim
+ *
+ * Perbedaannya bukan kosmetik. Shim `pg` menjalankan kueri lewat `psql` dan
+ * mengembalikan hasil lewat json_agg, yang otomatis mengubah array Postgres
+ * jadi array JSON. Driver asli tidak: array bertipe enum kustom datang
+ * sebagai TEKS '{}'. Perbedaan itulah yang membuat sebuah bug otorisasi —
+ * wali murid bisa membaca daftar seluruh siswa berikut UID kartu — lolos
+ * dari 80 uji dan baru ketahuan lewat uji coba manual pada 3 Sep 2026.
+ *
+ * Yang tetap diganti dan memang wajar: @/server/auth (login Google tidak bisa
+ * diuji otomatis) dan nodemailer. Logika peran, validasi, dan seluruh fungsi
+ * DB berjalan nyata.
  */
 import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -64,6 +74,7 @@ async function siapkanDb() {
     SELECT kebijakan_set('po_buka', '"00:00"', 'it@semesta.sch.id');
     SELECT kebijakan_set('po_tutup', '"23:59"', 'it@semesta.sch.id');
     SELECT staf_simpan('kesiswaan@semesta.sch.id', 'Bu Kesiswaan', '{kesiswaan}', TRUE, 'it@semesta.sch.id');
+    SELECT staf_simpan('kasir@semesta.sch.id', 'Mbak Kasir', '{kasir}', TRUE, 'it@semesta.sch.id');
   `;
   execSync(`psql -X -q -v ON_ERROR_STOP=1 "${URL_DB}"`, { env, input: sql, stdio: ["pipe", "ignore", "inherit"] });
 }
@@ -81,6 +92,7 @@ async function main() {
   const poAmbil = (await import("@/app/api/terminal/po/ambil/route")).POST as Handler;
   const pinAdmin = (await import("@/app/api/admin/siswa/[nis]/pin/route")).POST as Handler;
   const siswa360 = (await import("@/app/api/admin/siswa/[nis]/route")).GET as Handler;
+  const saya = (await import("@/app/api/saya/route")).GET as Handler;
   const siswaList = (await import("@/app/api/admin/siswa/route")).GET as Handler;
   const kartuAdmin = (await import("@/app/api/admin/siswa/[nis]/kartu/route")).POST as Handler;
   const deviceGet = (await import("@/app/api/admin/device/route")).GET as Handler;
@@ -233,6 +245,29 @@ async function main() {
   ok("360°: hash PIN tidak keluar", !("hash" in (r.data.pin ?? {})));
   r = await panggil(siswaList, "GET", "/api/admin/siswa?q=rafif", { headers: sebagai("orang@luar.com") });
   sama("email tak terdaftar → 403 BUKAN_STAF", [r.status, r.kode], [403, "BUKAN_STAF"]);
+
+  // ---- Batas driver DB→TypeScript (audit §1 & §2.6) --------------------
+  // Uji-uji di bawah inilah yang DULU tidak mungkin gagal di bawah shim,
+  // karena shim mengubah array Postgres jadi array JSON secara otomatis.
+  // Dengan driver `pg` asli, `peran_staf()` mengembalikan array enum kustom
+  // sebagai TEKS '{}' — dan '{}'.length === 2 membuat penjaga BUKAN_STAF
+  // tidak menyala, sehingga wali murid bisa membaca seluruh daftar siswa.
+  console.log("\n[batas driver DB→TS]");
+  r = await panggil(saya, "GET", "/api/saya", { headers: sebagai("gamma@example.com") });
+  ok("wali: peran adalah ARRAY kosong, bukan teks '{}'", Array.isArray(r.data?.peran) && r.data.peran.length === 0, r.data?.peran);
+  sama("wali diarahkan ke /ortu, bukan /admin", r.data?.tujuan, "/ortu");
+  r = await panggil(saya, "GET", "/api/saya", { headers: sebagai("keuangan@semesta.sch.id") });
+  ok("staf: peran terurai jadi array berisi", Array.isArray(r.data?.peran) && r.data.peran.includes("keuangan"), r.data?.peran);
+  sama("staf diarahkan ke /admin", r.data?.tujuan, "/admin");
+  r = await panggil(siswaList, "GET", "/api/admin/siswa?q=rafif", { headers: sebagai("gamma@example.com") });
+  sama("wali TIDAK bisa membaca daftar siswa → 403 BUKAN_STAF", [r.status, r.kode], [403, "BUKAN_STAF"]);
+
+  // §2.6 — UID kartu adalah kredensial: di bawah ambang PIN, bayar() cukup
+  // dengan UID. Hanya TU/IT yang boleh melihatnya.
+  r = await panggil(siswaList, "GET", "/api/admin/siswa?q=rafif", { headers: sebagai("kasir@semesta.sch.id") });
+  ok("kasir: daftar siswa TANPA uid & email", r.status === 200 && r.data.siswa.every((x: any) => x.uid === null && x.email === null), r.data?.siswa?.[0]);
+  r = await panggil(siswaList, "GET", "/api/admin/siswa?q=rafif", { headers: sebagai("tu@semesta.sch.id") });
+  ok("tu: daftar siswa DENGAN uid", r.status === 200 && r.data.siswa.some((x: any) => typeof x.uid === "string"), r.data?.siswa?.[0]);
   r = await panggil(siswaList, "GET", "/api/admin/siswa?q=rafif", {});
   sama("tanpa sesi → 401", r.status, 401);
   r = await panggil(audit, "GET", "/api/admin/audit?objek=siswa:1", { headers: sebagai("keuangan@semesta.sch.id") });
@@ -326,7 +361,15 @@ async function main() {
   ok("beranda GM: KPI + perhatian", r.status === 200 && r.data.kpi.siswa_aktif >= 4 && r.data.perhatian.kartu_dicabut.length >= 1, r.data?.kpi);
 
   console.log(`\n${lolos} lolos, ${gagal} gagal`);
-  if (gagal) { console.log(catatan.join("\n")); process.exit(1); }
+  if (gagal) console.log(catatan.join("\n"));
+
+  // Driver `pg` asli menahan proses tetap hidup lewat pool-nya; shim tidak
+  // punya end(). Tutup kalau ada, lalu keluar dengan kode yang benar.
+  try {
+    const { pool } = await import("@/server/db");
+    await (pool as { end?: () => Promise<void> }).end?.();
+  } catch { /* shim: tidak ada pool untuk ditutup */ }
+  process.exit(gagal ? 1 : 0);
 }
 
 main().catch((e) => { console.error(e); process.exit(2); });
