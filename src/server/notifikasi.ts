@@ -30,6 +30,10 @@ export async function kirimEmail(p: { ke: string; judul: string; teks: string; h
   const t = transporter();
   const dari = process.env.EMAIL_DARI ?? "Semesta Smart Campus <no-reply@semesta.sch.id>";
   if (!t) {
+    // Audit §2.7: isi email memuat tautan masuk. Boleh dicetak hanya di dev.
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("SMTP belum dikonfigurasi — email tidak bisa dikirim di produksi");
+    }
     console.log(`[email:dev] ke=${p.ke} judul=${p.judul}\n${p.teks}\n`);
     return;
   }

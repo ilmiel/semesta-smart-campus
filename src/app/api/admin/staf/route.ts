@@ -8,7 +8,7 @@ const PERAN = ["admin_it", "keuangan", "tu", "kasir", "laundry", "asrama", "pust
 
 export const GET = tangani(async (req) => {
   await wajibPeran(req, "admin_it", "manajemen");
-  return ok({ staf: await q(`SELECT id, email, nama, peran, aktif, dibuat, diubah FROM staf ORDER BY nama`) });
+  return ok({ staf: await q(`SELECT id, email, nama, peran::text[] AS peran, aktif, dibuat, diubah FROM staf ORDER BY nama`) });
 });
 
 export const POST = tangani(async (req) => {

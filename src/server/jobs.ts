@@ -31,7 +31,7 @@ export async function jobMenit() {
 export async function jobMalam() {
   const rekon = await fnSatu<{ jumlah_selisih: number; total_float_rp: number; jumlah_akun_siswa: number }>("rekonsiliasi_malam", []);
   let po: unknown = null;
-  try { po = await fnSatu("po_tutup_hari", [null]); } catch (e) { po = { dilewati: e instanceof Error ? e.message : String(e) }; }
+  try { po = await fnSatu("po_tutup_hari", []); } catch (e) { po = { dilewati: e instanceof Error ? e.message : String(e) }; }
   const topup = await cocokkanTopupMenunggu();
   const saldoRendah = await skalar<number>("notifikasi_saldo_rendah", []).catch(() => 0);
   return { rekonsiliasi: rekon, po_tutup_hari: po, topup, notifikasi_saldo_rendah: saldoRendah };

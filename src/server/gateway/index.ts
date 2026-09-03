@@ -53,8 +53,16 @@ export interface Gateway {
 export function gateway(): Gateway {
   const pilih = process.env.GATEWAY ?? (process.env.NODE_ENV === "production" ? "mayar" : "simulasi");
   if (pilih === "simulasi") {
-    if (process.env.NODE_ENV === "production" && process.env.IZINKAN_SIMULASI_PRODUKSI !== "ya") {
-      throw new Error("GATEWAY=simulasi tidak boleh dipakai di produksi");
+    if (process.env.NODE_ENV === "production") {
+      if (process.env.IZINKAN_SIMULASI_PRODUKSI !== "ya") {
+        throw new Error("GATEWAY=simulasi tidak boleh dipakai di produksi");
+      }
+      // Audit §2.8: rahasia bawaan = webhook simulasi bisa dipalsukan siapa
+      // pun, dan itu berarti saldo bisa ditambah tanpa uang masuk.
+      const s = process.env.SIMULASI_SECRET;
+      if (!s || s === "simulasi-dev-secret") {
+        throw new Error("SIMULASI_SECRET wajib diisi (dan bukan nilai bawaan) saat gateway simulasi dipakai di produksi");
+      }
     }
     return gatewaySimulasi;
   }

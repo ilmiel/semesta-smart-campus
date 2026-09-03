@@ -12,8 +12,9 @@ Alasan (dibanding logika di TypeScript + ORM):
 
 1. PRD prinsip 3 & 5: "database yang menolak, bukan aplikasi". Aturan yang ada di
    trigger/fungsi berlaku untuk **semua** jalur — API, skrip migrasi, psql darurat.
-2. Bisa diuji langsung: `npm run db:uji` menjalankan 336 uji di DB sementara,
-   tanpa server aplikasi, tanpa mock.
+2. Bisa diuji langsung: `npm run db:uji` menjalankan 379 uji di DB sementara,
+   tanpa server aplikasi, tanpa mock (termasuk `db/uji/08_regresi_audit.sql`,
+   satu uji untuk tiap temuan audit 3 Sep 2026).
 3. Satu bahasa untuk aturan bisnis. Developer pengganti cukup membaca SQL yang
    berkomentar; tidak perlu memahami ORM tertentu. Tidak ada Drizzle/Prisma —
    migrasi = file `.sql` bernomor yang dijalankan `db/migrate.sh` dalam transaksi.
@@ -60,6 +61,31 @@ hitung, buat/ubah fungsi DB dan uji di `db/uji/`.
 - Setiap `GET /api/admin/siswa/[nis]` dicatat di `audit_log` (`lihat_siswa`).
 - Peran tanpa hak uang (kesiswaan, wali kelas) menerima respons tanpa kolom rupiah — dihapus di server, bukan disembunyikan di UI.
 - Portal ortu memeriksa `wali.siswa_id` pada setiap request (`wajibWaliDari`); id anak lain → 403/404 tanpa bocor data.
+
+## Idempotensi: kunci terminal punya ruang nama sendiri
+
+Kunci idempotensi yang masuk lewat `bayar()` selalu diberi awalan
+`dev<id>:` (`idem_perangkat()`, migrasi 010). Dua akibatnya disengaja:
+terminal tidak bisa memakai kunci terminal lain, dan terminal tidak bisa
+menyentuh ruang nama internal (`topup:`, `tagihan:`, `po:`, `refund:`,
+`batal:`, `laundry:`) yang dipakai pemanggil server lewat `posting()`.
+
+Sebelum ini, keduanya mungkin — dan yang kedua bisa menelan pembayaran
+orang tua tanpa jejak. Kalau menambah pemanggil `bayar()` baru, jangan
+mencari kunci mentah di tabel `transaksi`: pakai `idem_perangkat()`.
+
+## Audit keamanan 3 September 2026
+
+Lima dimensi ditelusuri (driver DB→TS, otorisasi 78 route, logika uang,
+auth/webhook/PIN, modul layanan & siklus hidup). Temuan, bukti SQL-nya, dan
+sisa pekerjaan ada di Project:
+`claude/smart-campus/audit-keamanan-2026-09-03.md` dan `-bagian-2.md`.
+
+Migrasi 010 & 011 menutup yang kritis dan tinggi. Yang **belum** dikerjakan
+dan wajib sebelum Fase 1: kelompok siklus hidup (pergantian tahun ajaran,
+siswa keluar/lulus, pemulihan kartu), dan menjalankan ulang `tests/uji_api.ts`
+dengan driver `pg` asli — shim `psql` di situ menyembunyikan seluruh kelas
+bug yang justru menjadi temuan pertama audit ini.
 
 ## Yang sengaja belum ada
 

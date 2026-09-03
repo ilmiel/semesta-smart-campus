@@ -6,6 +6,7 @@
  *
  * `pesan` berbahasa Indonesia dan aman ditampilkan langsung ke kasir/ortu.
  */
+import { isIP } from "node:net";
 import { DbError, petakanError } from "./db";
 import { ValidasiError } from "./validasi";
 
@@ -48,11 +49,19 @@ export function tangani<P = Record<string, never>>(h: Handler<P>): Handler<P> {
   };
 }
 
-/** IP klien (di balik reverse proxy Nginx/Caddy pakai X-Forwarded-For). */
+/**
+  * IP klien (di balik reverse proxy Nginx/Caddy pakai X-Forwarded-For).
+  *
+  * Audit §3.9: nilainya dikirim ke kolom INET. Header ini bisa diisi apa saja
+  * oleh klien; nilai non-IP ('unknown', '1.2.3.4:5678') membuat pin_catat
+  * gagal FORMAT_SALAH — verifikasi PIN batal — dan membuat catat_audit
+  * gagal diam-diam sehingga penolakan terminal tidak tercatat.
+  * Yang bukan IP dibuang, bukan diteruskan.
+  */
 export function ipKlien(req: Request): string | null {
-  const xf = req.headers.get("x-forwarded-for");
-  if (xf) return xf.split(",")[0].trim();
-  return req.headers.get("x-real-ip");
+  const kandidat = req.headers.get("x-forwarded-for")?.split(",")[0].trim()
+    ?? req.headers.get("x-real-ip")?.trim();
+  return kandidat && isIP(kandidat) ? kandidat : null;
 }
 
 /** CSV sederhana untuk ekspor (Excel Indonesia: pemisah ';'). */

@@ -6,18 +6,26 @@
  */
 import { q, skalar } from "@/server/db";
 import { HttpError, ok, tangani } from "@/server/http";
+import { catatAudit } from "@/server/audit";
 import { aktor, wajibPeran } from "@/server/sesi";
 import { bacaBody, bacaQuery, v } from "@/server/validasi";
 
 export const GET = tangani(async (req) => {
-  await wajibPeran(req);
+  // Audit B2.1: peta loker adalah daftar "anak mana tidur di blok mana".
+  // Sebelumnya dijaga wajibPeran(req) tanpa peran — kasir kantin pun lolos —
+  // dan mengembalikan UID kartu tanpa satu baris audit pun, padahal route
+  // /admin/siswa/[nis] mencatat 'lihat_siswa' untuk data yang setara (§8.1).
+  const p = await wajibPeran(req, "asrama", "tu", "admin_it", "manajemen");
   const { blok } = bacaQuery(req, v.obj({ blok: v.str({ max: 5 }).opsional() }));
   const [peta, ringkas, akses] = await Promise.all([
     q(`SELECT * FROM v_loker_peta WHERE ($1::text IS NULL OR blok = $1) ORDER BY blok, nomor`, [blok ?? null]),
     q(`SELECT blok, COUNT(*) AS total, COUNT(*) FILTER (WHERE status = 'isi') AS isi, COUNT(*) FILTER (WHERE status = 'kosong') AS kosong, COUNT(*) FILTER (WHERE status = 'rusak') AS rusak FROM v_loker_peta GROUP BY blok ORDER BY blok`),
-    q(`SELECT a.waktu, l.kode AS loker, a.kartu_uid, s.nama, a.berhasil, a.alasan FROM akses_loker a JOIN loker l ON l.id = a.loker_id LEFT JOIN siswa s ON s.id = a.siswa_id
+    // kartu_uid sengaja tidak diambil: nama siswa sudah cukup untuk
+    // menelusuri akses, dan UID adalah kredensial.
+    q(`SELECT a.waktu, l.kode AS loker, s.nama, a.berhasil, a.alasan FROM akses_loker a JOIN loker l ON l.id = a.loker_id LEFT JOIN siswa s ON s.id = a.siswa_id
         WHERE ($1::text IS NULL OR l.blok = $1) AND a.waktu > now() - interval '24 hours' ORDER BY a.waktu DESC LIMIT 200`, [blok ?? null]),
   ]);
+  await catatAudit(aktor(p), p.peran.join(","), "lihat_peta_loker", `loker:blok:${blok ?? "*"}`, undefined, p.ip);
   return ok({ peta, ringkas, akses_24jam: akses });
 });
 

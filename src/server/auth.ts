@@ -68,11 +68,16 @@ export const auth = betterAuth({
   },
   plugins: [
     magicLink({
-      // Hanya kirim ke email wali yang terdaftar. Untuk email asing kita diam
-      // (tidak memberi tahu apakah email itu ada) — mencegah enumerasi.
+      // Hanya untuk WALI. Untuk email asing kita diam (tidak memberi tahu
+      // apakah email itu ada) — mencegah enumerasi.
+      //
+      // Audit §2.7: staf sengaja TIDAK boleh masuk lewat magic link. Peran
+      // diturunkan murni dari email (sesi.ts), jadi magic link ke email staf
+      // = sesi admin_it/keuangan penuh tanpa Google 2FA. Guru yang juga orang
+      // tua tidak dirugikan: sesi Google-nya sudah membawa peran DAN wali.
       sendMagicLink: async ({ email, url }) => {
         const d = await emailDikenal(email);
-        if (!d.wali && !d.staf) return;
+        if (!d.wali || d.staf) return;
         await kirimEmail({
           ke: email,
           judul: "Tautan masuk Portal Orang Tua — Semesta Smart Campus",

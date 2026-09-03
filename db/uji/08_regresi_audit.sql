@@ -197,3 +197,18 @@ SELECT * FROM rekonsiliasi_malam();
 SELECT * FROM rekonsiliasi_malam();
 SELECT uji_sama('B2.14 rekonsiliasi_malam idempoten (satu baris per tanggal)',
   (SELECT COUNT(*) FROM rekonsiliasi_log WHERE tanggal = hari_ini())::int, 1);
+
+-- ---------------------------------------------------------------------
+-- §2.5 (migrasi 011) — penyetuju top-up tunai harus punya wewenang uang
+-- ---------------------------------------------------------------------
+SELECT staf_simpan('laundry.uji@semesta.sch.id', 'Petugas Laundry', '{laundry}', TRUE, 'uji');
+SELECT uji_gagal('§2.5 penyetuju tanpa peran keuangan/tu ditolak',
+  $$SELECT * FROM topup_tunai($$ || :rs1 || $$, 20000, 'tu@semesta.sch.id', 'laundry.uji@semesta.sch.id')$$,
+  'PERAN_TIDAK_CUKUP');
+SELECT uji_gagal('§2.5 penginput tanpa peran keuangan/tu ditolak',
+  $$SELECT * FROM topup_tunai($$ || :rs1 || $$, 20000, 'laundry.uji@semesta.sch.id', 'tu@semesta.sch.id')$$,
+  'PERAN_TIDAK_CUKUP');
+SELECT * FROM topup_tunai(:rs1, 20000, 'tu@semesta.sch.id', 'tu2@semesta.sch.id', 'regresi 2.5') \gset tt_
+SELECT uji_ok('§2.5 dua staf berwenang tetap bisa top-up tunai', :tt_transaksi_id::bigint > 0);
+SELECT uji_ok('§2.5 audit mencatat peran sungguhan penginput, bukan "tu" mati',
+  EXISTS (SELECT 1 FROM audit_log WHERE aksi = 'topup_tunai' AND peran LIKE '%tu%' AND objek = 'siswa:' || :rs1));

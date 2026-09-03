@@ -9,7 +9,7 @@
  */
 import { auth } from "@/server/auth";   // alias (bukan relatif) supaya uji bisa menggantinya
 import { q, satu } from "./db";
-import { HttpError } from "./http";
+import { HttpError, ipKlien } from "./http";
 
 export type Peran =
   | "admin_it" | "keuangan" | "tu" | "kasir" | "laundry" | "asrama"
@@ -58,7 +58,7 @@ export async function principalDariRequest(req: Request): Promise<Principal | nu
       `SELECT w.id AS wali_id, w.siswa_id, w.utama FROM wali w JOIN siswa s ON s.id = w.siswa_id
         WHERE lower(w.email) = $1 AND s.status <> 'keluar'`, [email]),
   ]);
-  const xf = req.headers.get("x-forwarded-for");
+  // Audit §3.9: lewat ipKlien() supaya nilai non-IP tidak sampai ke kolom INET.
   return {
     email,
     // `||` bukan `??`: Better Auth mengisi name dengan string kosong untuk
@@ -67,7 +67,7 @@ export async function principalDariRequest(req: Request): Promise<Principal | nu
     peran: normalkanPeran(peran?.peran),
     siswa: siswa ?? null,
     wali: wali.map((w) => ({ waliId: w.wali_id, siswaId: w.siswa_id, utama: w.utama })),
-    ip: xf ? xf.split(",")[0].trim() : req.headers.get("x-real-ip"),
+    ip: ipKlien(req),
   };
 }
 

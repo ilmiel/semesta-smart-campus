@@ -21,7 +21,14 @@ export const GET = tangani(async (req) => {
     kpi: uang ? kpi : { ...kpi, omzet_hari_ini_rp: null, total_float_rp: null, topup_hari_ini_rp: null },
     per_jam: perJam,
     transaksi_terakhir: uang ? terakhir : [],
-    perhatian: { antrian_ditolak: perhatian[0], pin_terkunci: perhatian[1], kartu_dicabut: perhatian[2], device_bermasalah: perhatian[3] },
+    // Audit §2.6: UID kartu adalah kredensial (di bawah ambang PIN, bayar()
+    // cukup dengan UID). Hanya peran yang memang mengurus kartu & uang.
+    perhatian: {
+      antrian_ditolak: uang ? perhatian[0] : [],
+      pin_terkunci: perhatian[1],
+      kartu_dicabut: uang ? perhatian[2] : perhatian[2].map((r) => ({ ...r, uid: null })),
+      device_bermasalah: perhatian[3],
+    },
     peran: p.peran,
   });
 });

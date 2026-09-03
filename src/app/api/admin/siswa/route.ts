@@ -19,7 +19,19 @@ export const GET = tangani(async (req) => {
         AND ($2::text IS NULL OR status::text = $2) AND ($3::text IS NULL OR kelas = $3) AND ($4::text IS NULL OR kartu = $4)
       ORDER BY kelas NULLS LAST, nama LIMIT $5`, [f.q ?? null, f.status ?? null, f.kelas ?? null, f.kartu ?? null, f.limit]);
   const uang = punyaPeran(p, "keuangan", "tu", "admin_it", "manajemen");
-  return ok({ siswa: uang ? rows : rows.map((r) => ({ ...r, saldo_rp: null, limit_harian_rp: null })) });
+  // Audit §2.6: `uid` kartu adalah KREDENSIAL — di bawah ambang_pin_rp,
+  // bayar() memotong saldo hanya berbekal UID, tanpa PIN. Sebelumnya
+  // v_siswa dikirim apa adanya ke semua peran staf, sehingga seorang kasir
+  // bisa mengunduh seribu UID lalu memotong saldo siswa mana pun dari
+  // terminal kantin. Email siswa juga hanya urusan TU/IT.
+  const identitas = punyaPeran(p, "tu", "admin_it");
+  return ok({
+    siswa: rows.map((r) => ({
+      ...r,
+      ...(uang ? {} : { saldo_rp: null, limit_harian_rp: null }),
+      ...(identitas ? {} : { uid: null, email: null }),
+    })),
+  });
 });
 
 export const POST = tangani(async (req) => {
