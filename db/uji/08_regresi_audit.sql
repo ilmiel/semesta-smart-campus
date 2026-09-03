@@ -224,3 +224,38 @@ SELECT uji_gagal('012 kode rak kosong ditolak',
   $$SELECT rak_laundry_simpan('   ', NULL, TRUE, 0::smallint, 'uji')$$, 'NILAI_TIDAK_VALID');
 SELECT uji_ok('012 perubahan rak tercatat di audit',
   EXISTS (SELECT 1 FROM audit_log WHERE aksi = 'simpan_rak_laundry' AND objek = 'rak:B-99'));
+
+-- ---------------------------------------------------------------------
+-- 013 — admin IT terakhir tidak boleh mencabut aksesnya sendiri
+--
+-- Fase 1.4a memindahkan pengelolaan peran dari SQL ke halaman admin. Tanpa
+-- penjaga ini, satu klik bisa membuat sekolah kehilangan SATU-SATUNYA akun
+-- yang boleh mengangkat admin baru, dan pemulihannya hanya lewat akses
+-- langsung ke database produksi.
+-- ---------------------------------------------------------------------
+-- Sisakan tepat satu admin IT aktif: seed punya gm@ dan it@.
+SELECT staf_simpan('gm@semesta.sch.id', 'Andy (GM)', '{manajemen,keuangan,tu}', TRUE, 'uji');
+SELECT uji_ok('013 tepat satu admin IT aktif tersisa untuk uji',
+  (SELECT COUNT(*) FROM staf WHERE aktif AND 'admin_it' = ANY(peran)) = 1);
+
+SELECT uji_gagal('013 mencabut peran admin IT terakhir ditolak',
+  $$SELECT staf_simpan('it@semesta.sch.id', 'Admin IT', '{tu}', TRUE, 'uji')$$,
+  'ADMIN_TERAKHIR');
+SELECT uji_gagal('013 menonaktifkan akun admin IT terakhir ditolak',
+  $$SELECT staf_simpan('it@semesta.sch.id', 'Admin IT', '{admin_it}', FALSE, 'uji')$$,
+  'ADMIN_TERAKHIR');
+SELECT uji_ok('013 admin IT terakhir masih utuh setelah dua penolakan',
+  EXISTS (SELECT 1 FROM staf WHERE email = 'it@semesta.sch.id' AND aktif AND 'admin_it' = ANY(peran)));
+
+-- Dengan admin kedua, pencabutan kembali diizinkan — ini penghalang langkah
+-- terakhir, bukan kunci permanen.
+SELECT staf_simpan('it2@semesta.sch.id', 'Admin IT Dua', '{admin_it}', TRUE, 'uji');
+SELECT staf_simpan('it@semesta.sch.id', 'Admin IT', '{tu}', TRUE, 'uji');
+SELECT uji_ok('013 pencabutan diizinkan saat masih ada admin IT lain',
+  NOT EXISTS (SELECT 1 FROM staf WHERE email = 'it@semesta.sch.id' AND 'admin_it' = ANY(peran)));
+SELECT uji_ok('013 perubahan peran tercatat di audit',
+  EXISTS (SELECT 1 FROM audit_log WHERE aksi = 'simpan_staf' AND objek = 'staf:it@semesta.sch.id'));
+
+-- Kembalikan keadaan untuk berkas uji berikutnya.
+SELECT staf_simpan('gm@semesta.sch.id', 'Andy (GM)', '{manajemen,admin_it,keuangan,tu}', TRUE, 'uji');
+SELECT staf_simpan('it@semesta.sch.id', 'Admin IT', '{admin_it}', TRUE, 'uji');

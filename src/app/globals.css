@@ -347,3 +347,44 @@ footer.ft { margin-top:22px; font-size:12px; color:var(--ink-3); }
   border:1px solid var(--rule); background:var(--surface); color:var(--ink); cursor:pointer; }
 .keypad button:active { background:var(--accent-soft); }
 .keypad .fn { font-size:14px; font-family:var(--font-sans); color:var(--ink-2); }
+
+/* ============================================================
+   Admin — form & aksi (Fase 1.4a)
+   Terminal memakai .t-ok/.t-err yang sengaja besar untuk layar
+   sentuh; admin dipakai dari meja dengan mouse, jadi pesannya
+   sekelas teks tabel, bukan spanduk.
+   ============================================================ */
+input[type=time], input[type=date], textarea {
+  font:14px var(--font-sans); color:var(--ink); background:var(--surface);
+  border:1px solid var(--rule); border-radius:7px; padding:9px 12px; }
+
+.a-ok  { border:1px solid var(--good); background:var(--good-soft); color:var(--good-text);
+  border-radius:7px; padding:7px 10px; font-size:12.5px; font-weight:600; }
+.a-err { border:1px solid var(--critical); background:var(--crit-soft); color:var(--crit-text);
+  border-radius:7px; padding:7px 10px; font-size:12.5px; font-weight:600; }
+
+/* Daftar kebijakan: keterangan di kiri, kontrol di kanan */
+.kb-daftar { display:flex; flex-direction:column; }
+.kb-baris { display:flex; gap:16px; align-items:flex-start; padding:12px 0; border-top:1px solid var(--rule); }
+.kb-baris:first-child { border-top:0; padding-top:0; }
+.kb-info { min-width:0; flex:1; display:flex; flex-direction:column; gap:3px; }
+.kb-kunci code { font:600 12.5px var(--font-mono); color:var(--ink); }
+.kb-atur { display:flex; align-items:center; gap:8px; flex:none; flex-wrap:wrap; justify-content:flex-end; }
+@media (max-width:760px) { .kb-baris { flex-direction:column; } .kb-atur { justify-content:flex-start; } }
+
+/* Form tambah/ubah di dalam panel */
+.a-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; align-items:end; }
+.a-form .field { margin:0; }
+.a-form input, .a-form select { width:100%; }
+.a-aksi { display:flex; gap:6px; flex-wrap:wrap; }
+.a-aksi .btn { padding:5px 9px; font-size:12px; }
+
+/* Rahasia yang hanya ditampilkan sekali (kunci perangkat, PIN sementara) */
+.a-rahasia { border:1.5px dashed var(--accent); background:var(--accent-soft); border-radius:9px;
+  padding:12px 14px; margin-top:10px; }
+.a-rahasia .nilai { font:700 17px var(--font-mono); word-break:break-all; user-select:all;
+  display:block; margin:6px 0; color:var(--accent-ink); }
+
+/* Peran staf sebagai kotak centang */
+.a-peran { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:6px 14px; }
+.a-peran label { display:flex; align-items:center; gap:7px; font-size:13px; cursor:pointer; }
