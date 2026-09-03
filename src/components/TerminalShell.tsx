@@ -20,6 +20,10 @@ export interface Snapshot<T = unknown> {
   kebijakan: { ambang_pin_rp: number; limit_offline_rp: number; kumulatif_offline_rp: number; limit_harian_rp: number };
   menu?: T[];
   tarif?: T[];
+  /** Laundry: daftar rak yang dikelola admin (012). Terminal tetap menerima ketikan bebas. */
+  rak?: T[];
+  /** Laundry: nama staf berperan laundry/asrama, sebagai saran isian petugas. */
+  petugas?: T[];
 }
 
 export default function TerminalShell({ judul, layanan, anak }: {
