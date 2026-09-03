@@ -54,7 +54,12 @@ SELECT * FROM bayar('KANTIN-01', 'k01-0001', '04A1B2C3D4E5F6', 15000, 'Belanja k
 SELECT uji_ok('kirim ulang idem sama → baru=false', NOT :'b2_baru'::boolean);
 SELECT uji_sama('kirim ulang → transaksi id sama', :b2_transaksi_id::bigint, :b1_transaksi_id::bigint);
 SELECT uji_sama('kirim ulang tidak memotong lagi', saldo_siswa(1), 185000::bigint);
-SELECT uji_gagal('idem sama nominal beda ditolak (posting)', $$SELECT posting('belanja', akun_siswa(1), akun_kode('KANTIN'), 999, 1, 'k01-0001')$$, 'IDEMPOTENSI_BEDA');
+-- Kunci dari terminal kini berawalan perangkat (audit §1.1), jadi uji ini
+-- harus memakai kunci yang sama persis dengan yang tersimpan.
+SELECT uji_gagal('idem sama nominal beda ditolak (posting)',
+    $$SELECT posting('belanja', akun_siswa(1), akun_kode('KANTIN'), 999, 1,
+                     idem_perangkat((SELECT id FROM device WHERE kode = 'KANTIN-01'), 'k01-0001'))$$,
+    'IDEMPOTENSI_BEDA');
 SELECT uji_gagal('idem terlalu pendek ditolak', $$SELECT * FROM bayar('KANTIN-01', 'abc', '04A1B2C3D4E5F6', 1000, 'x')$$, 'IDEM_WAJIB');
 SELECT uji_gagal('nominal 0 ditolak', $$SELECT * FROM bayar('KANTIN-01', 'k01-0002', '04A1B2C3D4E5F6', 0, 'x')$$, 'NOMINAL_TIDAK_VALID');
 
@@ -156,11 +161,18 @@ SELECT uji_ok('NIS + PIN → tercatat tanpa_kartu', (SELECT tanpa_kartu FROM tra
 SELECT uji_gagal('offline di atas limit device ditolak', $$SELECT * FROM bayar('KANTIN-02', 'k02-off-0', '04A1B2C3D4E5F6', 30000, 'x', FALSE, TRUE)$$, 'MELEBIHI_LIMIT_OFFLINE');
 SELECT uji_gagal('offline dengan PIN mustahil (F-33)', $$SELECT * FROM bayar('KANTIN-02', 'k02-off-0', '04A1B2C3D4E5F6', 10000, 'x', TRUE, TRUE)$$, 'OFFLINE_TANPA_PIN');
 -- Keenan saldo 97.000: 3 item offline, item ke-2 pakai kartu yang sudah hilang, item ke-3 melebihi limit harian
-SELECT * FROM antrian_terima('KANTIN-02', $$[
- {"idempotency_key":"k02-off-1","kartu_uid":"04deadbeef0001","nominal_rp":20000,"waktu_terminal":"2026-09-02T10:01:00+07:00","keterangan":"offline 1"},
- {"idempotency_key":"k02-off-2","kartu_uid":"04C0FFEE000001","nominal_rp":5000,"waktu_terminal":"2026-09-02T10:02:00+07:00"},
- {"idempotency_key":"k02-off-3","kartu_uid":"04DEADBEEF0001","nominal_rp":30000,"waktu_terminal":"2026-09-02T10:03:00+07:00","items":[{"nama":"Paket","harga_rp":30000,"qty":1}]}
-]$$) \gset at_
+-- Waktu terminal dibangun dari now(), bukan tanggal mati: suite harus bisa
+-- dijalankan hari apa pun (audit §5.3), dan sejak 010 waktu offline
+-- divalidasi terhadap jendela 48 jam (audit §2.1).
+SELECT to_char(now() - interval '30 minutes', 'YYYY-MM-DD"T"HH24:MI:SSOF:00') AS w1,
+       to_char(now() - interval '29 minutes', 'YYYY-MM-DD"T"HH24:MI:SSOF:00') AS w2,
+       to_char(now() - interval '28 minutes', 'YYYY-MM-DD"T"HH24:MI:SSOF:00') AS w3 \gset
+SELECT format($j$[
+ {"idempotency_key":"k02-off-1","kartu_uid":"04deadbeef0001","nominal_rp":20000,"waktu_terminal":"%s","keterangan":"offline 1"},
+ {"idempotency_key":"k02-off-2","kartu_uid":"04C0FFEE000001","nominal_rp":5000,"waktu_terminal":"%s"},
+ {"idempotency_key":"k02-off-3","kartu_uid":"04DEADBEEF0001","nominal_rp":30000,"waktu_terminal":"%s","items":[{"nama":"Paket","harga_rp":30000,"qty":1}]}
+]$j$, :'w1', :'w2', :'w3') AS js \gset
+SELECT * FROM antrian_terima('KANTIN-02', :'js'::jsonb) \gset at_
 SELECT uji_sama('antrian diterima 3', :at_diterima::int, 3);
 SELECT * FROM antrian_proses('KANTIN-02') \gset ap_
 SELECT uji_sama('antrian: 1 diproses', :ap_diproses::int, 1);
@@ -168,9 +180,10 @@ SELECT uji_sama('antrian: 2 ditolak (kartu hilang, di atas limit offline)', :ap_
 SELECT uji_sama('item di atas limit offline ditolak dgn alasan', (SELECT alasan_tolak FROM antrian_offline WHERE idempotency_key = 'k02-off-3'), 'transaksi offline maksimal Rp 25000');
 SELECT uji_sama('item kartu hilang ditolak dengan alasan', (SELECT alasan_tolak FROM antrian_offline WHERE idempotency_key = 'k02-off-2'), 'kartu diblokir (status: hilang)');
 SELECT uji_ok('item valid diproses & menunjuk transaksi', (SELECT status = 'diproses' AND transaksi_id IS NOT NULL FROM antrian_offline WHERE idempotency_key = 'k02-off-1'));
-SELECT uji_ok('transaksi offline ditandai offline=true dgn waktu terminal', (SELECT offline AND waktu_terminal = '2026-09-02T10:01:00+07:00' FROM transaksi WHERE idempotency_key = 'k02-off-1'));
+SELECT uji_ok('transaksi offline ditandai offline=true dgn waktu terminal', (SELECT offline AND waktu_terminal = :'w1'::timestamptz FROM transaksi WHERE idempotency_key = (SELECT 'dev' || id || ':k02-off-1' FROM device WHERE kode = 'KANTIN-02')));
 SELECT uji_sama('audit offline_ditolak tercatat', (SELECT COUNT(*) FROM audit_log WHERE aksi = 'offline_ditolak')::int, :ap_ditolak::int);
-SELECT * FROM antrian_terima('KANTIN-02', $$[{"idempotency_key":"k02-off-1","kartu_uid":"04DEADBEEF0001","nominal_rp":20000,"waktu_terminal":"2026-09-02T10:01:00+07:00"}]$$) \gset at2_
+SELECT format($j$[{"idempotency_key":"k02-off-1","kartu_uid":"04DEADBEEF0001","nominal_rp":20000,"waktu_terminal":"%s"}]$j$, :'w1') AS js2 \gset
+SELECT * FROM antrian_terima('KANTIN-02', :'js2'::jsonb) \gset at2_
 SELECT uji_sama('kirim ulang antrian → duplikat, tidak diproses dua kali', :at2_duplikat::int, 1);
 SELECT uji_sama('saldo Keenan setelah offline: 97.000 − 20.000', saldo_siswa(3), 77000::bigint);
 
