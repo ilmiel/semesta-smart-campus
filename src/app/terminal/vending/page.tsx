@@ -1,113 +1,170 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import TerminalShell from "@/components/TerminalShell";
 import { rp } from "@/lib/format";
+import { apiTerminal, kunciIdem } from "@/lib/terminal";
 
-const PRODUK = [
-  { slot: "A1", nama: "Air mineral", harga: 4000 },
-  { slot: "A2", nama: "Susu kotak", harga: 6000 },
-  { slot: "A3", nama: "Roti cokelat", harga: 8000 },
-  { slot: "A4", nama: "Yogurt drink", harga: 7000 },
-  { slot: "B1", nama: "Isotonik", harga: 7000, habis: true },
-  { slot: "B2", nama: "Keripik", harga: 5000 },
-];
+/**
+ * Layar mesin vending — dua fase (F-111).
+ *
+ *   Fase 1  vending/mulai      → saldo DITAHAN, transaksi berstatus pending
+ *   Fase 2  vending/konfirmasi → sensor jatuh?  ya  = selesai, stok berkurang
+ *                                               tidak = batal + refund seketika
+ *
+ * Di mesin sungguhan, fase 2 dikirim oleh controller berdasarkan sensor.
+ * Di layar ini tombolnya manual supaya alurnya bisa diuji dan didemokan —
+ * itu satu-satunya bagian yang "simulasi"; uang dan stoknya sungguhan.
+ *
+ * Tidak ada mode offline (F-110): mesin menolak melayani kalau server tidak
+ * terjangkau, karena saldo tidak bisa ditahan tanpa server.
+ */
 
-type Tahap = "pilih" | "tap" | "proses" | "sukses" | "gagal";
+interface Slot {
+  slot_id: number; slot: string; produk: string | null; harga_rp: number | null;
+  stok: number; kapasitas: number; aktif: boolean; bermasalah: boolean;
+  disetujui_kesiswaan: boolean | null; bisa_dibeli: boolean; terjual_hari_ini: number;
+}
+interface Mulai { transaksi_id: number; baru: boolean; produk: string; harga_rp: number; nama: string; saldo_rp: number }
+interface Konfirmasi { status: string; saldo_rp: number; refund_transaksi_id: number | null }
 
-export default function MesinVending() {
-  const [tahap, setTahap] = useState<Tahap>("pilih");
-  const [pilihan, setPilihan] = useState<(typeof PRODUK)[number] | null>(null);
-  const [langkah, setLangkah] = useState("");
+export default function TerminalVending() {
+  return <TerminalShell judul="Mesin Vending" layanan="vending" anak={() => <Isi />} />;
+}
 
-  const jalan = (sukses: boolean) => {
-    setTahap("proses");
-    setLangkah("Menahan saldo…");
-    setTimeout(() => setLangkah("Motor slot berputar…"), 500);
-    setTimeout(() => setLangkah("Menunggu sensor jatuh…"), 1000);
-    setTimeout(() => setTahap(sukses ? "sukses" : "gagal"), 1600);
-  };
+function Isi() {
+  const [slot, setSlot] = useState<Slot[]>([]);
+  const [pilih, setPilih] = useState<Slot | null>(null);
+  const [uid, setUid] = useState("");
+  const [tahap, setTahap] = useState<"planogram" | "kartu" | "menunggu" | "hasil">("planogram");
+  const [pending, setPending] = useState<Mulai | null>(null);
+  const [hasil, setHasil] = useState<Konfirmasi | null>(null);
+  const [sibuk, setSibuk] = useState(false);
+  const [galat, setGalat] = useState("");
+
+  const muat = useCallback(async () => {
+    const r = await apiTerminal<{ slot: Slot[] }>("/api/terminal/vending/planogram");
+    if (r.ok) setSlot(r.data!.slot);
+  }, []);
+  useEffect(() => { void muat(); }, [muat]);
+
+  function ulang() {
+    setPilih(null); setUid(""); setPending(null); setHasil(null); setGalat("");
+    setTahap("planogram"); void muat();
+  }
+
+  async function mulai() {
+    if (!pilih) return;
+    setSibuk(true); setGalat("");
+    const r = await apiTerminal<Mulai>("/api/terminal/vending/mulai", {
+      metode: "POST", body: { idem: kunciIdem(), uid: uid.trim().toUpperCase(), slot: pilih.slot },
+    });
+    setSibuk(false);
+    if (!r.ok) { setGalat(r.pesan ?? "Pembelian ditolak"); return; }
+    setPending(r.data!); setTahap("menunggu");
+  }
+
+  async function konfirmasi(sensorOk: boolean) {
+    if (!pending) return;
+    setSibuk(true); setGalat("");
+    const r = await apiTerminal<Konfirmasi>("/api/terminal/vending/konfirmasi", {
+      metode: "POST",
+      body: { transaksi_id: pending.transaksi_id, sensor_ok: sensorOk, alasan: sensorOk ? undefined : "Barang tidak terdeteksi jatuh" },
+    });
+    setSibuk(false);
+    if (!r.ok) { setGalat(r.pesan ?? "Konfirmasi gagal"); return; }
+    setHasil(r.data!); setTahap("hasil");
+  }
 
   return (
-    <div className="root">
-      <div className="t-shell">
-        <div className="t-head">
-          <span className="id">VEND-01</span> · Gd. Akademik lt. 1 · <span className="on">● Online</span>
-          <span style={{ marginLeft: "auto" }}>Jam aktif 06.00–17.00 · Selasa 2 Sep, 09.55</span>
-        </div>
+    <>
+      {galat ? <div className="t-err" style={{ marginBottom: 12 }}>{galat}</div> : null}
 
-        {tahap === "pilih" ? (
-          <div className="t-panel">
-            <p className="t-big" style={{ margin: "0 0 12px" }}><b>Pilih produk</b> — lalu tap kartu.</p>
-            <div className="t-items">
-              {PRODUK.map(p => (
-                <button key={p.slot} type="button" disabled={p.habis} style={p.habis ? { opacity: 0.45 } : undefined}
-                  onClick={() => { setPilihan(p); setTahap("tap"); }}>
-                  {p.slot} · {p.nama}<br /><b>{p.habis ? "habis" : rp(p.harga)}</b>
-                </button>
-              ))}
-            </div>
-            <p className="p-note" style={{ margin: "12px 0 0" }}>
-              Server tidak terjangkau → mesin menolak semua transaksi (F-110). Batas vending: 3 transaksi /
-              Rp 20.000 per kartu per hari (F-112).
-            </p>
+      {tahap === "hasil" && hasil ? (
+        <section className="t-panel">
+          <div className={hasil.status === "selesai" ? "t-ok" : "t-err"}>
+            {hasil.status === "selesai" ? (
+              <>✓ Barang keluar. Sisa saldo {rp(hasil.saldo_rp)}.</>
+            ) : (
+              <>
+                ✕ Sensor tidak mendeteksi barang jatuh — transaksi dibatalkan dan
+                <b> uang dikembalikan seketika</b>. Saldo {rp(hasil.saldo_rp)}.
+                {hasil.refund_transaksi_id ? <> Refund #{hasil.refund_transaksi_id}.</> : null}
+                <br />Slot ditandai bermasalah supaya tidak dipakai siswa berikutnya.
+              </>
+            )}
           </div>
-        ) : null}
-
-        {tahap === "tap" && pilihan ? (
-          <div className="t-panel">
-            <div className="t-total" style={{ borderTop: 0, marginTop: 0, paddingTop: 0 }}>
-              <span className="l">{pilihan.nama}</span><span className="v">{rp(pilihan.harga)}</span>
-            </div>
-            <p className="t-big" style={{ margin: "12px 0 6px" }}><b>Tap kartu</b> untuk membayar.</p>
-            <button type="button" className="tapbtn" onClick={() => jalan(true)}>💳 &nbsp;Simulasi: tap kartu Aisha — barang keluar normal</button>
-            <button type="button" className="tapbtn alt" onClick={() => jalan(false)}>💳 Simulasi: tap kartu Aisha — barang NYANGKUT</button>
-            <button type="button" className="btn blok" style={{ marginTop: 10 }} onClick={() => setTahap("pilih")}>← Pilih produk lain</button>
+          <button type="button" className="btn pri blok" style={{ marginTop: 12 }} onClick={ulang}>Selesai</button>
+        </section>
+      ) : tahap === "menunggu" && pending ? (
+        <section className="t-panel">
+          <p className="t-big" style={{ margin: "0 0 4px" }}>
+            <b>{pending.produk}</b> · {rp(pending.harga_rp)} · {pending.nama}
+          </p>
+          <div className="t-ok" style={{ marginTop: 8 }}>
+            Saldo <b>ditahan</b>, belum dipotong permanen. Menunggu sensor.
           </div>
-        ) : null}
-
-        {tahap === "proses" ? (
-          <div className="t-panel">
-            <p className="t-big" style={{ textAlign: "center", margin: "8px 0" }}>{langkah}</p>
-            <p className="p-note" style={{ textAlign: "center", margin: 0 }}>
-              Saldo <b>ditahan</b> (pending), belum terpotong — menunggu sensor jatuh mengonfirmasi (F-111).
-            </p>
+          <p className="p-note" style={{ margin: "10px 0" }}>
+            Di mesin sungguhan, dua tombol di bawah ini dikirim otomatis oleh controller
+            berdasarkan sensor jatuh. Di sini manual supaya alurnya bisa diuji.
+          </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="btn pri" style={{ flex: 1, justifyContent: "center", minHeight: 52 }}
+              disabled={sibuk} onClick={() => void konfirmasi(true)}>Sensor: barang jatuh ✓</button>
+            <button type="button" className="btn danger" style={{ flex: 1, justifyContent: "center", minHeight: 52 }}
+              disabled={sibuk} onClick={() => void konfirmasi(false)}>Sensor: gagal ✕</button>
           </div>
-        ) : null}
-
-        {tahap === "sukses" && pilihan ? (
-          <div className="t-panel">
-            <div className="t-ok">
-              ✓ <b>{pilihan.nama}</b> keluar — {rp(pilihan.harga)} terpotong dari saldo Aisha
-              (sisa {rp(86500 - pilihan.harga)}).
-            </div>
-            <p className="p-note" style={{ margin: "12px 0 0" }}>
-              Transaksi <span className="mono">pending → selesai</span> setelah sensor jatuh mengonfirmasi.
-              Muncul di riwayat portal seperti belanja kantin.
-            </p>
-            <button type="button" className="btn blok" style={{ marginTop: 12 }} onClick={() => setTahap("pilih")}>Beli lagi</button>
+        </section>
+      ) : tahap === "kartu" && pilih ? (
+        <section className="t-panel">
+          <p className="t-big" style={{ margin: "0 0 4px" }}>
+            <b>{pilih.produk}</b> · slot {pilih.slot} · {pilih.harga_rp !== null ? rp(pilih.harga_rp) : "—"}
+          </p>
+          <div className="field" style={{ marginTop: 10 }}>
+            <label className="f" htmlFor="uid">Tap kartu (UID)</label>
+            <input id="uid" autoFocus style={{ width: "100%", fontFamily: "monospace" }} value={uid}
+              onChange={e => setUid(e.target.value.toUpperCase())}
+              onKeyDown={e => { if (e.key === "Enter" && uid.trim().length >= 8) void mulai(); }} />
           </div>
-        ) : null}
-
-        {tahap === "gagal" && pilihan ? (
-          <div className="t-panel">
-            <div className="t-err">
-              ✕ Sensor tidak mendeteksi barang jatuh.<br /><br />
-              Transaksi <b>dibatalkan otomatis</b> — saldo Aisha <b>tidak terpotong</b> (tetap Rp 86.500).<br />
-              Slot {pilihan.slot} dinonaktifkan &amp; IT diberi tahu. Silakan pilih produk lain.
-            </div>
-            <p className="p-note" style={{ margin: "12px 0 0" }}>
-              Uang tidak pernah terpotong tanpa barang (F-111). Kalau siswa merasa tetap terpotong, ada
-              tombol lapor di portal (F-116) — dicocokkan dengan log sensor.
-            </p>
-            <button type="button" className="btn blok" style={{ marginTop: 12 }} onClick={() => setTahap("pilih")}>Pilih produk lain</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="btn pri" style={{ flex: 1, justifyContent: "center", minHeight: 52 }}
+              disabled={sibuk || uid.trim().length < 8} onClick={() => void mulai()}>
+              {sibuk ? "Memproses…" : "Beli"}
+            </button>
+            <button type="button" className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={ulang}>Batal</button>
           </div>
-        ) : null}
-
-        <p className="p-note" style={{ marginTop: 16, textAlign: "center" }}>
-          Di produksi ini controller mesin + reader, tanpa layar sentuh besar: pilih lewat keypad angka
-          mesin, status lewat layar kecil 2 baris.
-        </p>
-      </div>
-    </div>
+          <p className="p-note" style={{ margin: "10px 0 0" }}>
+            Batas harian vending per kartu ditegakkan server — transaksi yang tertahan
+            (pending) ikut dihitung.
+          </p>
+        </section>
+      ) : (
+        <section className="t-panel">
+          <div className="hd" style={{ marginBottom: 8 }}>
+            <h2 style={{ fontSize: 15 }}>Pilih produk</h2>
+            <div className="r"><button type="button" className="btn sm" onClick={() => void muat()}>Muat ulang</button></div>
+          </div>
+          {slot.length === 0 ? <p className="p-note" style={{ margin: 0 }}>Belum ada slot terkonfigurasi untuk mesin ini.</p> : null}
+          <div className="ks-menu">
+            {slot.map(s => (
+              <button key={s.slot_id} type="button" disabled={!s.bisa_dibeli}
+                onClick={() => { setPilih(s); setTahap("kartu"); }}
+                title={!s.bisa_dibeli ? "Tidak tersedia" : undefined}>
+                <span className="em">{s.slot}</span>
+                {s.produk ?? "(kosong)"}
+                <span className="hg">
+                  {s.harga_rp !== null ? rp(s.harga_rp) : "—"} · stok {s.stok}
+                  {s.bermasalah ? " · bermasalah" : !s.aktif ? " · nonaktif" : s.stok <= 0 ? " · habis" : ""}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="p-note" style={{ margin: "12px 0 0" }}>
+            Produk hanya muncul kalau sudah disetujui kesiswaan (F-115). Slot bermasalah
+            dinonaktifkan otomatis setelah sensor gagal, sampai petugas memulihkannya.
+          </p>
+        </section>
+      )}
+    </>
   );
 }
