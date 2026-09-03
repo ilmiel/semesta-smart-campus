@@ -24,12 +24,34 @@ export interface Principal {
   ip: string | null;
 }
 
+/**
+ * `peran_staf()` mengembalikan `peran[]` — array bertipe enum buatan sendiri.
+ * OID tipe kustom ditentukan saat CREATE TYPE, jadi driver `pg` tidak punya
+ * pengurai untuknya dan menyerahkan literal Postgres apa adanya sebagai TEKS:
+ * '{}' atau '{keuangan,tu}'. Teks '{}' panjangnya 2, sehingga penjaga
+ * `p.peran.length === 0` tidak pernah menyala dan bukan-staf lolos.
+ *
+ * Kueri di bawah sudah di-cast ke text[] (OID 1009, dikenal driver) sehingga
+ * hasilnya array betulan. Fungsi ini lapis kedua: apa pun yang datang,
+ * yang keluar pasti array. Penjaga peran tidak boleh bergantung pada
+ * perilaku driver.
+ */
+function normalkanPeran(v: unknown): Peran[] {
+  if (Array.isArray(v)) return v as Peran[];
+  if (typeof v === "string") {
+    const isi = v.replace(/^\{/, "").replace(/\}$/, "").trim();
+    if (!isi) return [];
+    return isi.split(",").map((s) => s.trim().replace(/^"|"$/g, "")) as Peran[];
+  }
+  return [];
+}
+
 export async function principalDariRequest(req: Request): Promise<Principal | null> {
   const sesi = await auth.api.getSession({ headers: req.headers });
   if (!sesi?.user?.email) return null;
   const email = sesi.user.email.toLowerCase();
   const [peran, siswa, wali] = await Promise.all([
-    satu<{ peran: Peran[] }>(`SELECT peran_staf($1) AS peran`, [email]),
+    satu<{ peran: unknown }>(`SELECT peran_staf($1)::text[] AS peran`, [email]),
     satu<{ id: number; nis: string; nama: string }>(
       `SELECT id, nis, nama FROM siswa WHERE lower(email) = $1 AND status IN ('aktif','cuti')`, [email]),
     q<{ wali_id: number; siswa_id: number; utama: boolean }>(
@@ -39,8 +61,10 @@ export async function principalDariRequest(req: Request): Promise<Principal | nu
   const xf = req.headers.get("x-forwarded-for");
   return {
     email,
-    nama: sesi.user.name ?? email,
-    peran: peran?.peran ?? [],
+    // `||` bukan `??`: Better Auth mengisi name dengan string kosong untuk
+    // akun magic link yang belum punya nama.
+    nama: sesi.user.name || email,
+    peran: normalkanPeran(peran?.peran),
     siswa: siswa ?? null,
     wali: wali.map((w) => ({ waliId: w.wali_id, siswaId: w.siswa_id, utama: w.utama })),
     ip: xf ? xf.split(",")[0].trim() : req.headers.get("x-real-ip"),
