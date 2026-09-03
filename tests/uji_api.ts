@@ -59,8 +59,12 @@ const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
 async function siapkanDb() {
   const env = { ...process.env, DATABASE_URL: URL_DB };
-  execSync(`bash ${root}/db/migrate.sh --reset`, { env, stdio: "ignore" });
-  execSync(`psql -X -q -v ON_ERROR_STOP=1 "${URL_DB}" -f ${root}/db/uji/00_kerangka.sql`, { env, stdio: "ignore" });
+  // stdio "inherit" untuk stderr: kalau penyiapan gagal, pesan psql harus
+  // kelihatan. Sebelumnya "ignore" menelan sebabnya dan yang tersisa hanya
+  // "Command failed ... status 3" — tidak bisa didiagnosis.
+  const diam: ["pipe", "ignore", "inherit"] = ["pipe", "ignore", "inherit"];
+  execSync(`bash ${root}/db/migrate.sh --reset`, { env, stdio: diam });
+  execSync(`psql -X -q -v ON_ERROR_STOP=1 "${URL_DB}" -f ${root}/db/uji/00_kerangka.sql`, { env, stdio: diam });
   const sql = `
     UPDATE device SET api_key_hash = '${sha(KUNCI.kantin)}'  WHERE kode = 'KANTIN-01';
     UPDATE device SET api_key_hash = '${sha(KUNCI.laundry)}' WHERE kode = 'LNDRY-01';
