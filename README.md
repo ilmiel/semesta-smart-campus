@@ -52,15 +52,23 @@ Gateway pembayaran: `GATEWAY=simulasi` sampai KYC mayar.id selesai dan
 - Tidak ada logika uang di frontend — tombol transaksi memanggil toast
   "aksi contoh" sampai API Fase 1a ada.
 
+## Deploy
+
+Dua jalur, tidak saling meniadakan:
+
+- **Produksi jangka panjang → VPS**, per keputusan PRD §10 (latency rendah untuk
+  tap-kartu kantin, cron per-menit untuk sinkron antrian offline — bukan cuma
+  cron harian). `next.config.ts` memakai `output: "standalone"` untuk ini;
+  langkah lengkap di `docs/OPERASIONAL.md`.
+- **Uji coba/preview → Vercel**, boleh dan sudah disiapkan (`vercel.json`,
+  route job pakai `GET` supaya kena Vercel Cron). `output: "standalone"` tidak
+  menghalangi ini — Vercel punya build system sendiri dan mengabaikan opsi itu.
+  Yang wajib diperhatikan di Vercel: Postgres harus eksternal (Neon/Supabase,
+  region Singapore — bukan Postgres di VPS), cron Hobby-tier cuma harian
+  (job menit tidak akan jalan sesering di VPS), dan `GATEWAY=simulasi` perlu
+  `IZINKAN_SIMULASI_PRODUKSI=ya` karena mayar.id belum aktif. Detail lengkap:
+  `docs/DEPLOY_VERCEL.md`.
+
 ## Catatan
 
-- `next.config.ts` memakai `output: "standalone"` — siap untuk Docker/VPS,
-  bukan Vercel (keputusan stack, PRD §10).
 - Font: IBM Plex Sans/Mono via `next/font` (self-hosted otomatis, tanpa CDN).
-- Referensi konvensi Next.js v16 & Better Auth diambil dari dokumentasi resmi
-  via Context7 saat scaffolding.
-- Status verifikasi: skema + 336 uji SQL dan 80 uji integrasi route dijalankan
-  terhadap PostgreSQL 16 sungguhan. `npm install`/`next build`/Better Auth
-  belum pernah dijalankan (registry npm diblokir di lingkungan pembuatan) —
-  jalankan di mesin lokal; lapisan Node ditype-check dan diuji lewat shim
-  (`tests/`).
