@@ -12,6 +12,11 @@
 # dijalankan di produksi — buat file bernomor berikutnya.
 # =====================================================================
 set -euo pipefail
+# Jalur mutlak skrip ini DULU, sebelum cd. Mode --uji memanggil dirinya
+# sendiri; dengan "$0" relatif (mis. `bash db/migrate.sh`) pemanggilan itu
+# gagal "No such file or directory" setelah cd — persis yang terjadi pada
+# `npm run db:uji`.
+SKRIP="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 cd "$(dirname "$0")"
 
 : "${DATABASE_URL:?DATABASE_URL belum di-set (contoh: postgres://smartcampus:rahasia@localhost/smartcampus)}"
@@ -24,7 +29,7 @@ if [[ "${1:-}" == "--uji" ]]; then
     $PSQL "$ADMIN_URL" -c "CREATE DATABASE $UJI_DB"
     trap '$PSQL "$ADMIN_URL" -c "DROP DATABASE IF EXISTS $UJI_DB" >/dev/null' EXIT
     export DATABASE_URL="${DATABASE_URL%/*}/$UJI_DB"
-    "$0"
+    "$SKRIP"
     for f in uji/[0-9]*.sql; do
         echo "── uji: $f"
         # stdout dibuang di sini (portabel di bash mana pun, termasuk Git Bash
