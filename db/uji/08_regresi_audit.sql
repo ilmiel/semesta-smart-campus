@@ -212,3 +212,15 @@ SELECT * FROM topup_tunai(:rs1, 20000, 'tu@semesta.sch.id', 'tu2@semesta.sch.id'
 SELECT uji_ok('§2.5 dua staf berwenang tetap bisa top-up tunai', :tt_transaksi_id::bigint > 0);
 SELECT uji_ok('§2.5 audit mencatat peran sungguhan penginput, bukan "tu" mati',
   EXISTS (SELECT 1 FROM audit_log WHERE aksi = 'topup_tunai' AND peran LIKE '%tu%' AND objek = 'siswa:' || :rs1));
+
+-- ---------------------------------------------------------------------
+-- 012 — daftar rak laundry (saran untuk terminal, bukan pembatas)
+-- ---------------------------------------------------------------------
+SELECT rak_laundry_simpan(' b-99 ', 'Uji', TRUE, 9::smallint, 'uji') AS rk \gset
+SELECT uji_sama('012 kode rak dinormalkan huruf besar & tanpa spasi', :'rk'::text, 'B-99'::text);
+SELECT uji_ok('012 rak tersimpan dan aktif',
+  EXISTS (SELECT 1 FROM rak_laundry WHERE kode = 'B-99' AND aktif));
+SELECT uji_gagal('012 kode rak kosong ditolak',
+  $$SELECT rak_laundry_simpan('   ', NULL, TRUE, 0::smallint, 'uji')$$, 'NILAI_TIDAK_VALID');
+SELECT uji_ok('012 perubahan rak tercatat di audit',
+  EXISTS (SELECT 1 FROM audit_log WHERE aksi = 'simpan_rak_laundry' AND objek = 'rak:B-99'));

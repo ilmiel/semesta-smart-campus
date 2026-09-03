@@ -13,7 +13,7 @@ import { bacaQuery, v } from "@/server/validasi";
 export const GET = tangani(async (req) => {
   const d = await wajibDevice(req);
   const { sejak } = bacaQuery(req, v.obj({ sejak: v.str({ max: 40 }).opsional() }));
-  const [dicabut, menu, tarif, kebijakan] = await Promise.all([
+  const [dicabut, menu, tarif, kebijakan, [rak, petugas]] = await Promise.all([
     fn("kartu_dicabut_sejak", [sejak ?? null]),
     d.layanan === "kantin" ? q(`SELECT * FROM v_menu_aktif`) : Promise.resolve([]),
     // Terminal laundry butuh daftar tarif untuk menyusun tiket; harganya
@@ -22,8 +22,19 @@ export const GET = tangani(async (req) => {
       ? q(`SELECT kode, nama, jenis::text AS jenis, harga_rp FROM tarif_laundry WHERE aktif ORDER BY jenis, nama`)
       : Promise.resolve([]),
     kebijakanTerminal(d),
+    // Saran rak & petugas untuk terminal laundry. Keduanya hanya SARAN —
+    // terminal tetap menerima ketikan bebas, karena asrama sering memakai
+    // rak sementara dan sistem tidak boleh menghalangi pekerjaan berjalan.
+    // Nama staf saja, tanpa email: terminal hanya perlu mencatat siapa yang
+    // menerima cucian.
+    d.layanan === "laundry"
+      ? Promise.all([
+          q(`SELECT kode, lokasi FROM rak_laundry WHERE aktif ORDER BY urutan, kode`),
+          q(`SELECT nama FROM staf WHERE aktif AND peran && ARRAY['laundry','asrama']::peran[] ORDER BY nama`),
+        ])
+      : Promise.resolve([[], []]),
   ]);
   const kartu_aktif = sejak ? undefined : await fn("snapshot_kartu_aktif", []);
   await q(`UPDATE device SET terakhir_sinkron = now() WHERE id = $1`, [d.id]);
-  return ok({ waktu_server: new Date().toISOString(), device: d, kebijakan, kartu_dicabut: dicabut, kartu_aktif, menu, tarif });
+  return ok({ waktu_server: new Date().toISOString(), device: d, kebijakan, kartu_dicabut: dicabut, kartu_aktif, menu, tarif, rak, petugas });
 });

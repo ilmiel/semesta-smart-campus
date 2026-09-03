@@ -17,6 +17,7 @@ import { apiTerminal, kunciIdem } from "@/lib/terminal";
  */
 
 interface Tarif { kode: string; nama: string; jenis: string; harga_rp: number }
+interface Rak { kode: string; lokasi: string | null }
 interface Hitung { total_rp: number; berat_kg: number; items: { nama: string; harga_rp: number; qty: number }[] }
 interface Order {
   id: number; kode: string; status: string; siswa_id: number; nama: string; kelas: string | null;
@@ -26,12 +27,16 @@ interface Order {
 export default function TerminalLaundry() {
   return (
     <TerminalShell judul="Terminal Laundry" layanan="laundry" anak={({ snap }) => (
-      <Isi tarif={(snap.tarif as unknown as Tarif[]) ?? []} />
+      <Isi
+        tarif={(snap.tarif as unknown as Tarif[]) ?? []}
+        rak={(snap.rak as unknown as Rak[]) ?? []}
+        petugas={((snap.petugas as unknown as { nama: string }[]) ?? []).map(x => x.nama)}
+      />
     )} />
   );
 }
 
-function Isi({ tarif }: { tarif: Tarif[] }) {
+function Isi({ tarif, rak: daftarRak, petugas: daftarPetugas }: { tarif: Tarif[]; rak: Rak[]; petugas: string[] }) {
   const [tab, setTab] = useState<"terima" | "bayar">("terima");
 
   // --- terima -------------------------------------------------------------
@@ -178,13 +183,30 @@ function Isi({ tarif }: { tarif: Tarif[] }) {
               Express (biaya tambahan sesuai kebijakan)
             </label>
 
+            {/* Daftar dari admin hanya SARAN — mengetik bebas tetap diterima,
+                karena asrama sering memakai rak sementara dan petugas pengganti. */}
             <div className="field">
               <label className="f" htmlFor="rak">Rak (opsional)</label>
-              <input id="rak" style={{ width: "100%" }} value={rak} onChange={e => setRak(e.target.value)} placeholder="mis. B-14" />
+              <input id="rak" list="daftar-rak" style={{ width: "100%" }} value={rak}
+                onChange={e => setRak(e.target.value.toUpperCase())}
+                placeholder={daftarRak.length ? "pilih atau ketik" : "mis. B-14"} />
+              <datalist id="daftar-rak">
+                {daftarRak.map(r => <option key={r.kode} value={r.kode}>{r.lokasi ?? ""}</option>)}
+              </datalist>
+              {daftarRak.length === 0 ? (
+                <p className="p-note" style={{ margin: "4px 0 0" }}>
+                  Belum ada daftar rak — atur di dashboard admin (Laundry → Rak) supaya muncul sebagai pilihan.
+                </p>
+              ) : null}
             </div>
             <div className="field">
               <label className="f" htmlFor="petugas">Petugas (opsional)</label>
-              <input id="petugas" style={{ width: "100%" }} value={petugas} onChange={e => setPetugas(e.target.value)} />
+              <input id="petugas" list="daftar-petugas" style={{ width: "100%" }} value={petugas}
+                onChange={e => setPetugas(e.target.value)}
+                placeholder={daftarPetugas.length ? "pilih atau ketik" : "nama petugas"} />
+              <datalist id="daftar-petugas">
+                {daftarPetugas.map(n => <option key={n} value={n} />)}
+              </datalist>
             </div>
 
             <div className="t-total">

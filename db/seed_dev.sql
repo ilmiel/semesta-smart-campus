@@ -113,3 +113,8 @@ SELECT bayar('KANTIN-02', 'seed-0004', '04A1F1A0000001', 9000, 'Belanja kantin')
 SELECT bayar('KANTIN-01', 'seed-0005', '04BA6A50000001', 16000, 'Belanja kantin');
 
 \echo 'Seed dev selesai. PIN siswa belum ada — reset lewat dashboard TU (POST /api/admin/siswa/<nis>/pin {aksi:"reset"}).'
+
+-- Rak laundry (012) — supaya terminal punya pilihan saat uji coba
+SELECT rak_laundry_simpan('B-14', 'Asrama Putra lt. 1', TRUE, 1::smallint, 'seed');
+SELECT rak_laundry_simpan('B-15', 'Asrama Putra lt. 1', TRUE, 2::smallint, 'seed');
+SELECT rak_laundry_simpan('C-01', 'Asrama Putri lt. 1', TRUE, 3::smallint, 'seed');
