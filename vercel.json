@@ -1,6 +1,5 @@
 {
   "crons": [
-    { "path": "/api/jobs/menit", "schedule": "*/5 * * * *" },
     { "path": "/api/jobs/malam", "schedule": "5 17 * * *" }
   ]
 }
