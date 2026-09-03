@@ -27,7 +27,9 @@ if [[ "${1:-}" == "--uji" ]]; then
     "$0"
     for f in uji/[0-9]*.sql; do
         echo "── uji: $f"
-        $PSQL "$DATABASE_URL" -f "$f"
+        # stdout dibuang di sini (portabel di bash mana pun, termasuk Git Bash
+        # di Windows); stderr tetap tampil supaya kegagalan kelihatan.
+        $PSQL "$DATABASE_URL" -f "$f" > /dev/null
     done
     echo "── ringkasan"
     $PSQL "$DATABASE_URL" -f uji/_ringkasan.sql

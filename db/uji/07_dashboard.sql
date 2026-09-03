@@ -4,7 +4,9 @@
 \set ON_ERROR_STOP on
 SET client_min_messages = warning;
 SELECT uji_berkas('07_dashboard');
-\o /dev/null
+-- Keluaran per-pernyataan disenyapkan oleh pemanggil (migrate.sh / harness),
+-- bukan oleh `\o /dev/null` — perintah itu hanya ada di Unix dan membuat
+-- seluruh suite gagal di Windows, padahal tim IT sekolah memakai Windows.
 
 SELECT siswa_tambah('27001', 'Siswa Baru', 'baru.27@semesta.sch.id', 'SMP', TRUE, '7.B', 'tu@semesta.sch.id') AS sb \gset
 SELECT uji_sama('siswa_tambah → kelas & akun wallet', (SELECT kelas || ':' || saldo_rp FROM v_siswa WHERE nis = '27001'), '7.B:0');

@@ -5,7 +5,9 @@
 \set ON_ERROR_STOP on
 SET client_min_messages = warning;
 SELECT uji_berkas('01_wallet');
-\o /dev/null
+-- Keluaran per-pernyataan disenyapkan oleh pemanggil (migrate.sh / harness),
+-- bukan oleh `\o /dev/null` — perintah itu hanya ada di Unix dan membuat
+-- seluruh suite gagal di Windows, padahal tim IT sekolah memakai Windows.
 
 -- ---------- TOP-UP GATEWAY (F-20, F-22, F-24) ----------
 SELECT topup_buat(1, 200000, 'simulasi', 'wali:1') AS id \gset tp1_

@@ -5,7 +5,9 @@
 \set ON_ERROR_STOP on
 SET client_min_messages = warning;
 SELECT uji_berkas('05_perpus');
-\o /dev/null
+-- Keluaran per-pernyataan disenyapkan oleh pemanggil (migrate.sh / harness),
+-- bukan oleh `\o /dev/null` — perintah itu hanya ada di Unix dan membuat
+-- seluruh suite gagal di Windows, padahal tim IT sekolah memakai Windows.
 
 SELECT buku_tambah('Harry Potter and the Philosopher''s Stone', 'J.K. Rowling', 'Fiksi Inggris', '9780747532699', 'F-21', FALSE, 4, 'HP1', 'perpus@semesta.sch.id') AS b_hp \gset
 SELECT buku_tambah('Bumi', 'Tere Liye', 'Fiksi Indonesia', NULL, 'F-12', FALSE, 2, 'BUMI', 'perpus@semesta.sch.id') AS b_bumi \gset

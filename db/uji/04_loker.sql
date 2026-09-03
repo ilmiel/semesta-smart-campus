@@ -4,7 +4,9 @@
 \set ON_ERROR_STOP on
 SET client_min_messages = warning;
 SELECT uji_berkas('04_loker');
-\o /dev/null
+-- Keluaran per-pernyataan disenyapkan oleh pemanggil (migrate.sh / harness),
+-- bukan oleh `\o /dev/null` — perintah itu hanya ada di Unix dan membuat
+-- seluruh suite gagal di Windows, padahal tim IT sekolah memakai Windows.
 
 SELECT uji_sama('buat blok A 1–5', loker_buat_blok('A', 1, 5, 'Asrama Putra lt.1', 'LOKER-A', 'asrama@semesta.sch.id'), 5);
 SELECT uji_sama('kode loker A-003', (SELECT kode FROM loker WHERE blok = 'A' AND nomor = 3), 'A-003');

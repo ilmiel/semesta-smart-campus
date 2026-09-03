@@ -4,7 +4,9 @@
 \set ON_ERROR_STOP on
 SET client_min_messages = warning;
 SELECT uji_berkas('06_vending');
-\o /dev/null
+-- Keluaran per-pernyataan disenyapkan oleh pemanggil (migrate.sh / harness),
+-- bukan oleh `\o /dev/null` — perintah itu hanya ada di Unix dan membuat
+-- seluruh suite gagal di Windows, padahal tim IT sekolah memakai Windows.
 
 SELECT uji_gagal('harga di atas ambang PIN ditolak (F-110)', $$SELECT vending_produk_simpan(NULL, 'Mahal', 30000, TRUE, 'x')$$, 'DI_ATAS_AMBANG_PIN');
 SELECT uji_gagal('harga bukan kelipatan 500 ditolak', $$SELECT vending_produk_simpan(NULL, 'X', 4300, TRUE, 'x')$$, 'NILAI_TIDAK_VALID');

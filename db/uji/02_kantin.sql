@@ -4,7 +4,9 @@
 \set ON_ERROR_STOP on
 SET client_min_messages = warning;
 SELECT uji_berkas('02_kantin');
-\o /dev/null
+-- Keluaran per-pernyataan disenyapkan oleh pemanggil (migrate.sh / harness),
+-- bukan oleh `\o /dev/null` — perintah itu hanya ada di Unix dan membuat
+-- seluruh suite gagal di Windows, padahal tim IT sekolah memakai Windows.
 
 -- ---------- MENU (F-41) ----------
 SELECT menu_simpan(NULL, 'Nasi ayam geprek', 1, 12000, TRUE, TRUE, NULL, 'it@semesta.sch.id') AS m1 \gset
