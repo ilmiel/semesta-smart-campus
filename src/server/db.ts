@@ -33,6 +33,15 @@ types.setTypeParser(1082, (v) => v);
 // Sebagai teks, nilainya tetap jam dinding WIB apa adanya — persis yang
 // dibutuhkan file CSV yang dibuka di Excel.
 types.setTypeParser(1114, (v) => v);
+// time → string 'HH:MM:SS' apa adanya.
+//
+// Ini sudah perilaku bawaan node-postgres, dan justru itu masalahnya: seluruh
+// jam kebijakan (po_buka, po_tutup, po_ambil_*) dibandingkan dan dipotong
+// sebagai teks di klien — `jamIni() < jam_tutup.slice(0, 5)` menentukan apakah
+// tombol "Batalkan" pesanan masih ditampilkan. Ketergantungan itu tidak boleh
+// bergantung pada default yang bisa berubah tanpa disadari; ditulis di sini
+// supaya siapa pun yang tergoda mengubahnya melihat dulu apa yang ikut rusak.
+types.setTypeParser(1083, (v) => v);
 
 declare global {
   // eslint-disable-next-line no-var

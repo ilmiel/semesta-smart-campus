@@ -71,7 +71,12 @@ export default function Bagian() {
   const [invoice, setInvoice] = useState<{ url: string; topup_id: number; gateway: string } | null>(null);
   const [limitBaru, setLimitBaru] = useState("");
 
+  // Jendela PO dimuat saat halaman dibuka, bukan saat "Lihat menu" ditekan —
+  // tombol "Batalkan" di daftar pesanan butuh JAM tutup PO, bukan hanya
+  // tanggalnya. Lihat `bisaBatal` di bawah.
   const [jendela, setJendela] = useState<Jendela | null>(null);
+  const [jendelaSiap, setJendelaSiap] = useState(false);
+  const [tampilMenu, setTampilMenu] = useState(false);
   const [qty, setQty] = useState<Record<number, number>>({});
 
   const [bulan, setBulan] = useState("");
@@ -82,6 +87,11 @@ export default function Bagian() {
     void (async () => {
       const r = await api<{ nama: string; email: string }>("/api/saya");
       if (r.ok) setSaya({ nama: r.data!.nama, email: r.data!.email });
+    })();
+    void (async () => {
+      const r = await api<Jendela>("/api/ortu/po/jendela");
+      if (r.ok) setJendela(r.data!);
+      setJendelaSiap(true);   // gagal pun harus diketahui: lihat panel di bawah
     })();
   }, []);
 
@@ -165,12 +175,6 @@ export default function Bagian() {
     await muatUlang();
   }
 
-  async function bukaPO() {
-    setPesan(""); setGagal(false); setQty({});
-    const r = await api<Jendela>("/api/ortu/po/jendela");
-    if (r.ok) setJendela(r.data!);
-  }
-
   async function kirimPO() {
     if (!a) return;
     const items = Object.entries(qty).filter(([, q]) => q > 0).map(([id, q]) => ({ menu_id: Number(id), qty: q }));
@@ -179,7 +183,7 @@ export default function Bagian() {
     const r = await api(`/api/ortu/anak/${a.siswa.id}/po`, { metode: "POST", body: { items } });
     setSibuk(false);
     if (!r.ok) { setGagal(true); setPesan(r.pesan ?? "Pesanan ditolak"); return; }
-    setQty({}); setJendela(null);
+    setQty({}); setTampilMenu(false);
     setPesan("Pesanan tercatat dan sudah dibayar dari saldo anak.");
     await muatUlang();
   }
@@ -258,7 +262,7 @@ export default function Bagian() {
                     // dipilih sampai permintaannya selesai — persis jenis
                     // kebohongan kecil yang tidak boleh ada di layar ini.
                     setPilih(x.siswa.id); setRiwayat(null);
-                    setLembar(null); setJendela(null); setPesan("");
+                    setLembar(null); setTampilMenu(false); setQty({}); setPesan("");
                   }}>
                   {x.siswa.nama} · {x.siswa.kelas ?? x.siswa.nis}
                 </button>
@@ -407,10 +411,20 @@ export default function Bagian() {
           <div className="hd2">
             <h2>Pra-pesan kantin</h2>
             <button type="button" className="btn sm" style={{ marginLeft: "auto" }}
-              onClick={() => void bukaPO()}>Lihat menu</button>
+              onClick={() => { setPesan(""); setGagal(false); setQty({}); setTampilMenu(!tampilMenu); }}>
+              {tampilMenu ? "Tutup menu" : "Lihat menu"}
+            </button>
           </div>
 
-          {jendela ? (
+          {tampilMenu && !jendela ? (
+            <p className="p-note" style={{ margin: 0 }}>
+              {jendelaSiap
+                ? "Menu belum bisa dimuat. Coba muat ulang halaman."
+                : "Memuat menu…"}
+            </p>
+          ) : null}
+
+          {tampilMenu && jendela ? (
             jendela.buka ? (
               <>
                 <p className="p-note" style={{ marginTop: 0 }}>
@@ -449,7 +463,7 @@ export default function Bagian() {
           ) : null}
 
           {a.po.length > 0 ? (
-            <div style={{ marginTop: jendela ? 14 : 0 }}>
+            <div style={{ marginTop: tampilMenu ? 14 : 0 }}>
               <div className="p-note" style={{ marginBottom: 6 }}>Pesanan 7 hari terakhir</div>
               {a.po.map(p => (
                 <div key={p.id} className="att">
@@ -459,7 +473,7 @@ export default function Bagian() {
                   <div className="tx">
                     {p.item ?? p.kode}<br />{rp(p.total_rp)} · {p.tanggal}
                   </div>
-                  {p.status === "dibayar" && p.tanggal >= hariIni() ? (
+                  {bisaBatal(p, jendela) ? (
                     <span className="act">
                       <button type="button" className="btn sm" disabled={sibuk}
                         onClick={() => void batalPO(p.id)}>Batalkan</button>
@@ -483,8 +497,10 @@ export default function Bagian() {
               </div>
             ))}
             <p className="p-note" style={{ marginTop: 10 }}>
-              Buku selalu diterima kembali walau terlambat. Denda keterlambatan muncul sebagai
-              tagihan di atas, bukan sebagai buku yang ditahan.
+              Buku selalu diterima kembali walau terlambat — tidak pernah ditahan. Denda
+              keterlambatan <b>dipotong dari saldo anak</b> di meja perpustakaan saat buku
+              dikembalikan (kalau PIN dimasukkan dan saldonya cukup); kalau tidak, denda itu
+              menjadi tagihan yang muncul di daftar di atas.
             </p>
           </div>
         ) : null}
@@ -585,4 +601,28 @@ function jam(x: string | null | undefined): string {
 /** Tanggal sekolah hari ini (WIB) sebagai 'YYYY-MM-DD'. */
 function hariIni(): string {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" });
+}
+
+/** Jam dinding WIB sekarang sebagai 'HH:MM' — sebanding dengan jam kebijakan. */
+function jamIni(): string {
+  return new Date().toLocaleTimeString("en-GB", {
+    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta",
+  });
+}
+
+/**
+ * Apakah PO ini masih bisa dibatalkan.
+ *
+ * Batasnya sama dengan `po_batal` di SQL: hari yang sama DAN belum lewat jam
+ * tutup PO. Memakai tanggal saja membuat tombol "Batalkan" tetap tampil
+ * sepanjang sore — padahal dapur sudah memasak dan server pasti menolak
+ * dengan PO_SUDAH_TUTUP. Kalau jendela gagal dimuat, tombolnya tetap
+ * ditampilkan dan server yang memutuskan.
+ */
+function bisaBatal(p: { status: string; tanggal: string }, j: Jendela | null): boolean {
+  if (p.status !== "dibayar") return false;
+  if (p.tanggal > hariIni()) return true;
+  if (p.tanggal < hariIni()) return false;
+  if (!j) return true;
+  return jamIni() < j.jam_tutup.slice(0, 5);
 }

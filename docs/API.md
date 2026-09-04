@@ -74,7 +74,17 @@ Terminal tidak pernah menerima hash. Transaksi offline tidak pernah membawa PIN 
 
 ## Portal siswa — sesi Google siswa
 
-`GET /api/siswa/saya` · `GET /api/siswa/riwayat` · `POST /api/siswa/pin {pin_lama, pin_baru}` · `POST /api/siswa/kartu/hilang` · `GET /api/siswa/po/jendela` · `POST /api/siswa/po` · `DELETE /api/siswa/po/[poId]` · `POST /api/siswa/pinjaman/[id]/perpanjang` · `POST /api/siswa/vending/sengketa`
+`GET /api/siswa/saya` · `GET /api/siswa/riwayat` · `GET /api/siswa/bacaan` · `POST /api/siswa/pin {pin_lama, pin_baru}` · `POST /api/siswa/kartu/hilang` · `GET /api/siswa/po/jendela` · `POST /api/siswa/po` · `DELETE /api/siswa/po/[poId]` · `POST /api/siswa/pinjaman/[id]/perpanjang` · `POST /api/siswa/vending/sengketa`
+
+Semua endpoint di atas mengambil `siswa_id` dari sesi (`wajibSiswa`), tidak pernah dari isian
+klien. Sengaja **tidak ada** endpoint isi saldo, ubah limit harian, atau bayar tagihan di jalur
+siswa: ketiganya milik orang tua/keuangan, dan ketiadaannya adalah aturannya — bukan tombol yang
+disembunyikan portal.
+
+`GET /api/siswa/saya` mengembalikan `{siswa, limit, aturan, tagihan, po, pinjaman, laundry, loker}`.
+`aturan` = aturan pinjam per jenjang (`maks_buku`, `lama_hari`, `denda_per_hari`, `maks_denda_rp`,
+`boleh_perpanjang`) supaya portal menulis batas dan tarif denda yang sesungguhnya; `pinjaman` ikut
+membawa `denda_berjalan_rp`.
 
 ## Dashboard admin — sesi staf, peran per endpoint
 

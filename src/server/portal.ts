@@ -8,7 +8,7 @@ import { fnSatu, q, satu, skalar } from "./db";
 import { HttpError } from "./http";
 
 export async function ringkasanSiswa(siswaId: number) {
-  const [siswa, tagihan, po, pinjaman, laundry, loker, limit] = await Promise.all([
+  const [siswa, tagihan, po, pinjaman, laundry, loker, limit, aturan] = await Promise.all([
     // `pin_harus_ganti` ikut dikirim supaya portal bisa memberi tahu siswa
     // bahwa PIN-nya masih PIN sementara dari TU — PIN yang diucapkan di meja
     // dan berlaku penuh sampai diganti. Hash-nya tentu tidak ikut.
@@ -19,14 +19,23 @@ export async function ringkasanSiswa(siswaId: number) {
     q(`SELECT p.id, p.kode, p.tanggal, p.status, p.total_rp, p.dibuat,
               (SELECT string_agg(i.qty || '× ' || i.nama, ', ' ORDER BY i.id) FROM po_item i WHERE i.po_id = p.id) AS item
          FROM po_pesanan p WHERE p.siswa_id = $1 AND p.tanggal >= hari_ini() - 7 ORDER BY p.id DESC`, [siswaId]),
-    q(`SELECT id, judul, pengarang, dipinjam, jatuh_tempo, hari_telat, diperpanjang FROM v_pinjaman_aktif WHERE siswa_id = $1 ORDER BY jatuh_tempo`, [siswaId]),
+    // `denda_berjalan_rp` sudah dihitung view-nya (perpus_hitung_denda) dan
+    // ikut dikirim: denda yang baru muncul saat buku dikembalikan adalah
+    // kejutan, dan kejutan soal uang selalu berakhir di meja TU.
+    q(`SELECT id, judul, pengarang, dipinjam, jatuh_tempo, hari_telat, diperpanjang, denda_berjalan_rp
+         FROM v_pinjaman_aktif WHERE siswa_id = $1 ORDER BY jatuh_tempo`, [siswaId]),
     q(`SELECT id, kode, status, total_rp, rak, dibuat, siap_pada, item FROM v_laundry_aktif WHERE siswa_id = $1 ORDER BY dibuat DESC`, [siswaId]),
     satu(`SELECT kode, blok, nomor, lokasi, kondisi, akses_terakhir FROM v_loker_peta WHERE siswa_id = $1`, [siswaId]),
     satu<{ limit_harian_rp: number; plafon_rp: number; terpakai_rp: number }>(
       `SELECT limit_harian_efektif($1) AS limit_harian_rp, kebijakan_int('limit_harian_rp') AS plafon_rp, belanja_hari($1, hari_ini()) AS terpakai_rp`, [siswaId]),
+    // Aturan pinjam per jenjang. Portal memakainya untuk menulis batas dan
+    // tarif denda yang sesungguhnya ("2 dari 3", "Rp 1.000/hari") alih-alih
+    // angka yang ditulis tangan di layar lalu berbeda dari yang ditagih SQL.
+    satu<{ maks_buku: number; lama_hari: number; denda_per_hari: number; maks_denda_rp: number; boleh_perpanjang: number }>(
+      `SELECT maks_buku, lama_hari, denda_per_hari, maks_denda_rp, boleh_perpanjang FROM aturan_untuk($1)`, [siswaId]),
   ]);
   if (!siswa) throw new HttpError(404, "TIDAK_DITEMUKAN", "siswa tidak ditemukan");
-  return { siswa, limit, tagihan, po, pinjaman, laundry, loker: loker ?? null };
+  return { siswa, limit, tagihan, po, pinjaman, laundry, loker: loker ?? null, aturan: aturan ?? null };
 }
 
 export async function riwayatSiswa(siswaId: number, bulan?: string, limit = 100) {
