@@ -388,3 +388,9 @@ input[type=time], input[type=date], textarea {
 /* Peran staf sebagai kotak centang */
 .a-peran { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:6px 14px; }
 .a-peran label { display:flex; align-items:center; gap:7px; font-size:13px; cursor:pointer; }
+
+/* Baris identitas di atas setiap halaman admin. Sebelumnya beranda memajang
+   "admin@semesta.sch.id" yang hardcoded — bukan sekadar data contoh, tapi
+   klaim identitas palsu di layar yang dipakai untuk keputusan uang. */
+.adm-akun { display:flex; align-items:center; gap:10px; justify-content:flex-end;
+  flex-wrap:wrap; margin-bottom:12px; }

@@ -51,7 +51,8 @@ export default function Bagian() {
   const [sibuk, setSibuk] = useState(false);
 
   function bersih() {
-    setBaru(null); setUbah(null); setKonfirm(null); setAlasan(""); setPesan(""); setGagal(false);
+    setBaru(null); setUbah(null); setUbahLimit(""); setKonfirm(null);
+    setAlasan(""); setPesan(""); setGagal(false);
   }
 
   async function daftarkan() {

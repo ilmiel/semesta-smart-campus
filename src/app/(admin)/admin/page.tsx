@@ -16,9 +16,6 @@ export default function BerandaAdmin() {
           <h1>Beranda</h1>
           <div className="sub">Selasa, 1 September 2026 · Tahun ajaran 2026/2027</div>
         </div>
-        <div className="right">
-          <div className="chip-user"><span className="av">AD</span> admin@semesta.sch.id</div>
-        </div>
       </div>
       <Demo />
 

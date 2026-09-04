@@ -9,7 +9,7 @@
  */
 import { auth } from "@/server/auth";   // alias (bukan relatif) supaya uji bisa menggantinya
 import { q, satu } from "./db";
-import { HttpError, ipKlien } from "./http";
+import { HttpError, ipDariHeaders } from "./http";
 
 export type Peran =
   | "admin_it" | "keuangan" | "tu" | "kasir" | "laundry" | "asrama"
@@ -46,8 +46,16 @@ function normalkanPeran(v: unknown): Peran[] {
   return [];
 }
 
-export async function principalDariRequest(req: Request): Promise<Principal | null> {
-  const sesi = await auth.api.getSession({ headers: req.headers });
+/**
+ * Versi berbasis Headers.
+ *
+ * Route handler punya `Request`; Server Component tidak — ia hanya punya
+ * `headers()`. Layout admin memakai jalur ini supaya penjaga akses halaman
+ * memakai kode yang PERSIS SAMA dengan penjaga API, bukan salinan yang
+ * lama-lama menyimpang.
+ */
+export async function principalDariHeaders(h: Headers): Promise<Principal | null> {
+  const sesi = await auth.api.getSession({ headers: h });
   if (!sesi?.user?.email) return null;
   const email = sesi.user.email.toLowerCase();
   const [peran, siswa, wali] = await Promise.all([
@@ -58,7 +66,7 @@ export async function principalDariRequest(req: Request): Promise<Principal | nu
       `SELECT w.id AS wali_id, w.siswa_id, w.utama FROM wali w JOIN siswa s ON s.id = w.siswa_id
         WHERE lower(w.email) = $1 AND s.status <> 'keluar'`, [email]),
   ]);
-  // Audit §3.9: lewat ipKlien() supaya nilai non-IP tidak sampai ke kolom INET.
+  // Audit §3.9: lewat ipDariHeaders() supaya nilai non-IP tidak sampai ke kolom INET.
   return {
     email,
     // `||` bukan `??`: Better Auth mengisi name dengan string kosong untuk
@@ -67,8 +75,12 @@ export async function principalDariRequest(req: Request): Promise<Principal | nu
     peran: normalkanPeran(peran?.peran),
     siswa: siswa ?? null,
     wali: wali.map((w) => ({ waliId: w.wali_id, siswaId: w.siswa_id, utama: w.utama })),
-    ip: ipKlien(req),
+    ip: ipDariHeaders(h),
   };
+}
+
+export async function principalDariRequest(req: Request): Promise<Principal | null> {
+  return principalDariHeaders(req.headers);
 }
 
 export async function wajibLogin(req: Request): Promise<Principal> {

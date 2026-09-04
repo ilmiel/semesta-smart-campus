@@ -58,10 +58,14 @@ export function tangani<P = Record<string, never>>(h: Handler<P>): Handler<P> {
   * gagal diam-diam sehingga penolakan terminal tidak tercatat.
   * Yang bukan IP dibuang, bukan diteruskan.
   */
-export function ipKlien(req: Request): string | null {
-  const kandidat = req.headers.get("x-forwarded-for")?.split(",")[0].trim()
-    ?? req.headers.get("x-real-ip")?.trim();
+export function ipDariHeaders(h: Headers): string | null {
+  const kandidat = h.get("x-forwarded-for")?.split(",")[0].trim()
+    ?? h.get("x-real-ip")?.trim();
   return kandidat && isIP(kandidat) ? kandidat : null;
+}
+
+export function ipKlien(req: Request): string | null {
+  return ipDariHeaders(req.headers);
 }
 
 /** CSV sederhana untuk ekspor (Excel Indonesia: pemisah ';'). */
