@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import KeluarButton from "@/components/KeluarButton";
+import TanpaAkses from "@/components/TanpaAkses";
 import { principalDariHeaders } from "@/server/sesi";
 
 /**
@@ -39,28 +39,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   if (p.peran.length === 0) {
     return (
-      <div className="root">
-        <div className="t-shell" style={{ maxWidth: 560 }}>
-          <section className="panel">
-            <h1 style={{ fontSize: 18, margin: "0 0 6px" }}>Tidak ada akses staf</h1>
-            <p className="p-note" style={{ marginTop: 0 }}>
-              Kamu masuk sebagai <b>{p.email}</b>, tapi email ini tidak terdaftar sebagai staf.
-            </p>
-            <p style={{ fontSize: 13.5 }}>
-              {p.wali.length > 0 ? (
-                <>Akun ini terdaftar sebagai wali murid — yang kamu cari kemungkinan besar{" "}
-                  <Link href="/ortu">portal orang tua</Link>.</>
-              ) : p.siswa ? (
-                <>Akun ini terdaftar sebagai siswa — buka <Link href="/siswa">portal siswa</Link>.</>
-              ) : (
-                <>Kalau seharusnya kamu punya akses, minta admin IT mendaftarkan email ini di
-                  halaman Staf &amp; Peran.</>
-              )}
-            </p>
-            <KeluarButton />
-          </section>
-        </div>
-      </div>
+      <TanpaAkses
+        email={p.email}
+        judul="Tidak ada akses staf"
+        pesan={
+          p.wali.length > 0 || p.siswa
+            ? "Email ini tidak terdaftar sebagai staf, tapi punya akses ke portal lain."
+            : "Email ini tidak terdaftar sebagai staf. Kalau seharusnya punya akses, minta admin IT "
+              + "mendaftarkannya di halaman Staf & Peran."
+        }
+        tautan={[
+          ...(p.wali.length > 0 ? [{ href: "/ortu", label: "Portal orang tua" }] : []),
+          ...(p.siswa ? [{ href: "/siswa", label: "Portal siswa" }] : []),
+        ]}
+      />
     );
   }
 

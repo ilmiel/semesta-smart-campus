@@ -12,7 +12,7 @@ export function PengaturanPO() {
   const toast = useToast();
   const [aktif, setAktif] = useState(true);
   return (
-    <div className="panel" style={{ marginBottom: 14 }}>
+    <div className="panel">
       <div className="hd">
         <h2>Pra-pesan (PO)</h2>
         <Badge warna={aktif ? "good" : "crit"}>{aktif ? "aktif · buka 05.30–10.30" : "nonaktif"}</Badge>
