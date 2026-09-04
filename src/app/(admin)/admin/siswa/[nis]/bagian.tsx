@@ -17,6 +17,12 @@ import { rp } from "@/lib/format";
  *   - Reset PIN menampilkan PIN sementara SEKALI dan harus disampaikan
  *     langsung ke siswa yang hadir. Server tidak menyimpannya dalam bentuk
  *     yang bisa dibaca lagi.
+ *
+ *     Catatan penting yang layarnya sekarang sebutkan apa adanya: PIN itu
+ *     LANGSUNG BERLAKU PENUH. Kolom `harus_ganti` (F-30) hanya menandai
+ *     "ini PIN dari TU" — tidak ada satu pun jalur pembayaran yang
+ *     memeriksanya. Sampai penegakannya ada, PIN sementara adalah kredensial
+ *     pembayaran hidup yang diucapkan di meja TU.
  *   - Ubah status ke lulus/keluar minta konfirmasi terpisah — itu mematikan
  *     kartu dan menghentikan transaksi baru.
  *
@@ -137,9 +143,10 @@ export default function Bagian({ nis }: { nis: string }) {
             <div style={{ fontWeight: 600, fontSize: 13 }}>Sampaikan langsung ke siswa yang sedang berdiri di depanmu.</div>
             <code className="nilai">{rahasia}</code>
             <div className="p-note" style={{ margin: 0 }}>
-              Jangan dikirim lewat WhatsApp atau dititipkan ke teman sekelas. Siswa wajib
-              menggantinya sendiri di portal pada pemakaian pertama; sampai diganti, PIN ini
-              tidak bisa dipakai untuk transaksi.
+              Jangan dikirim lewat WhatsApp atau dititipkan ke teman sekelas. PIN ini
+              <b> langsung berlaku penuh</b> untuk transaksi dan tetap berlaku sampai siswa
+              menggantinya sendiri di portal — jadi selama belum diganti, siapa pun yang
+              sempat mendengarnya bisa memakainya. Ingatkan siswa menggantinya hari itu juga.
             </div>
           </div>
           <div className="a-aksi" style={{ marginTop: 10 }}>
@@ -384,7 +391,7 @@ export default function Bagian({ nis }: { nis: string }) {
           <p style={{ margin: "0 0 10px", fontSize: 13.5 }}>
             {!data.pin.ada ? <>Siswa ini <b>belum punya PIN</b>. Transaksi di atas ambang PIN akan ditolak sampai PIN dibuat lewat reset.</>
               : data.pin.terkunci ? <><Badge warna="crit">terkunci</Badge> sampai {waktuSingkat(data.pin.terkunci_hingga)} · {data.pin.gagal} percobaan gagal</>
-                : data.pin.harus_ganti ? <><Badge warna="warn">PIN sementara</Badge> — siswa belum menggantinya di portal</>
+                : data.pin.harus_ganti ? <><Badge warna="warn">PIN sementara</Badge> — masih PIN dari TU, berlaku penuh, belum diganti siswa</>
                   : <><Badge warna="good">aktif</Badge> · {data.pin.gagal} percobaan gagal terakhir</>}
           </p>
           <div className="a-aksi">
