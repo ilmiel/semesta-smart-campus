@@ -76,10 +76,25 @@ export function useMuat<T>(jalur: string) {
   return { data, galat, sedang, muatUlang, setGalat };
 }
 
-/** Tanggal/waktu singkat untuk tabel. Kosong kalau null. */
+/**
+ * Tanggal/waktu singkat untuk tabel. Kosong kalau null.
+ *
+ * Ada dua bentuk waktu yang datang dari server, dan bedanya penting:
+ *
+ *   - timestamptz → ISO berakhiran 'Z'. Saat yang sesungguhnya; JS tahu
+ *     zonanya, tinggal ditampilkan dalam zona sekolah.
+ *   - timestamp tanpa zona (kolom view yang sudah digeser `AT TIME ZONE
+ *     'Asia/Jakarta'`) → teks "2026-09-04 12:47:00" tanpa penanda zona.
+ *     Itu SUDAH jam dinding WIB. Kalau diserahkan apa adanya ke `new Date`,
+ *     JS menafsirkannya sebagai waktu lokal browser — benar di Indonesia,
+ *     bergeser 7 jam di mana pun server atau penggunanya tidak di WIB.
+ *
+ * Bentuk kedua dikenali dari ketiadaan penanda zona, lalu ditempeli offset
+ * WIB supaya keduanya bermuara pada saat yang sama.
+ */
 export function waktuSingkat(x: string | null | undefined): string {
   if (!x) return "—";
-  const d = new Date(x);
+  const d = new Date(tanpaZona(x) ? `${x.replace(" ", "T")}+07:00` : x);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString("id-ID", {
     day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
@@ -87,10 +102,19 @@ export function waktuSingkat(x: string | null | undefined): string {
   });
 }
 
+/**
+ * Teks waktu tanpa penanda zona sama sekali — "2026-09-04 12:47:00" atau
+ * "2026-09-04T12:47:00". Tanggal saja ("2026-09-04") sengaja tidak termasuk:
+ * itu memang tanggal, bukan saat.
+ */
+function tanpaZona(x: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(x) && !/(Z|[+-]\d{2}:?\d{2})$/.test(x);
+}
+
 /** "3 mnt lalu" — untuk kolom terakhir online. */
 export function sejak(x: string | null | undefined): string {
   if (!x) return "belum pernah";
-  const ms = Date.now() - new Date(x).getTime();
+  const ms = Date.now() - new Date(tanpaZona(x) ? `${x.replace(" ", "T")}+07:00` : x).getTime();
   if (Number.isNaN(ms)) return "—";
   const menit = Math.floor(ms / 60000);
   if (menit < 1) return "baru saja";

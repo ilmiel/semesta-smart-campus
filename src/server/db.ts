@@ -20,6 +20,19 @@ types.setTypeParser(20, (v) => Number(v));
 types.setTypeParser(1700, (v) => Number(v));
 // date → string 'YYYY-MM-DD' apa adanya (jangan digeser zona waktu oleh JS Date)
 types.setTypeParser(1082, (v) => v);
+// timestamp TANPA zona → string apa adanya, dengan alasan yang sama.
+//
+// Beberapa view (v_ekspor_transaksi, v_koreksi) memakai `AT TIME ZONE
+// 'Asia/Jakarta'` untuk menghasilkan jam dinding WIB — hasilnya bertipe
+// timestamp tanpa zona. Parser bawaan node-postgres membacanya sebagai waktu
+// lokal PROSES NODE, lalu JSON.stringify mengubahnya ke UTC. Di Vercel (UTC)
+// jam 12.47 WIB berubah jadi 19.47; di VPS sekolah yang zonanya WIB, benar.
+// Bug yang benar di satu lingkungan dan salah di lingkungan lain adalah bug
+// yang paling sulit dipercaya saat dilaporkan.
+//
+// Sebagai teks, nilainya tetap jam dinding WIB apa adanya — persis yang
+// dibutuhkan file CSV yang dibuka di Excel.
+types.setTypeParser(1114, (v) => v);
 
 declare global {
   // eslint-disable-next-line no-var

@@ -11,6 +11,7 @@ const MENU: { href: string; ikon: string; label: string; pilot?: boolean }[] = [
   { href: "/admin/perangkat", ikon: "⌸", label: "Perangkat" },
   { href: "/admin/staf", ikon: "☖", label: "Staf & Peran" },
   { href: "/admin/kebijakan", ikon: "⚙", label: "Kebijakan" },
+  { href: "/admin/audit", ikon: "⎙", label: "Jejak audit" },
   { href: "/admin/laporan", ikon: "≣", label: "Laporan" },
   { href: "/admin/laundry", ikon: "◎", label: "Laundry", pilot: true },
   { href: "/admin/loker", ikon: "▦", label: "Loker", pilot: true },

@@ -8,7 +8,13 @@ export const GET = tangani(async (req) => {
   const [kpi, perJam, terakhir, perhatian] = await Promise.all([
     fnSatu("kpi_beranda", []),
     q(`SELECT * FROM v_transaksi_per_jam`),
-    q(`SELECT waktu, jenis, siswa, device, total_rp, layanan, item FROM v_ekspor_transaksi ORDER BY waktu DESC LIMIT 12`),
+    // Kolom `waktu` view ini sudah digeser ke jam dinding WIB dan bertipe
+    // timestamp TANPA zona — bentuk yang tepat untuk CSV, menyesatkan untuk
+    // layar yang akan mengonversinya lagi ke zona sekolah. Dikembalikan ke
+    // timestamptz di sini supaya yang dikirim ke klien adalah saat yang
+    // sesungguhnya, bukan angka jam yang perlu ditafsirkan.
+    q(`SELECT (waktu AT TIME ZONE 'Asia/Jakarta') AS waktu, jenis, siswa, device, total_rp, layanan, item
+         FROM v_ekspor_transaksi ORDER BY waktu DESC LIMIT 12`),
     Promise.all([
       q(`SELECT * FROM v_antrian_ditolak ORDER BY diterima DESC LIMIT 10`),
       q(`SELECT * FROM v_pin_terkunci LIMIT 10`),
