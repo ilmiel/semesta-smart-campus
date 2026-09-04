@@ -17,11 +17,24 @@ function transporter(): Transporter | null {
   if (transport !== undefined) return transport;
   const host = process.env.SMTP_HOST;
   if (!host) { transport = null; return null; }
+
+  // SMTP_USER terisi tapi SMTP_PASS kosong adalah kesalahan konfigurasi yang
+  // paling sering terjadi (variabel tersimpan di environment yang salah, atau
+  // deployment belum diulang). Tanpa penjaga ini nodemailer tetap mencoba
+  // login dengan password kosong dan menjawab 'Missing credentials for
+  // "PLAIN"' — pesan yang tidak menyebut satu pun nama variabel kita, jadi
+  // orang mencarinya di tempat yang salah selama setengah jam.
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (user && !pass) {
+    throw new Error("SMTP_USER terisi tapi SMTP_PASS kosong — periksa environment variable di server (dan ulangi deploy setelah menambahkannya)");
+  }
+
   transport = nodemailer.createTransport({
     host,
     port: Number(process.env.SMTP_PORT ?? 587),
     secure: process.env.SMTP_SECURE === "true",
-    auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
+    auth: user ? { user, pass } : undefined,
   });
   return transport;
 }
