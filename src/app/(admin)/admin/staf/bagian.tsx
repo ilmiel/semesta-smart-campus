@@ -57,6 +57,25 @@ export default function Bagian() {
     setForm(s ? { email: s.email, nama: s.nama, peran: [...s.peran], aktif: s.aktif } : { ...KOSONG });
   }
 
+  /**
+   * Aktifkan/nonaktifkan satu akun, lewat PATCH.
+   *
+   * Bukan lewat form di atas: form itu mengirim seluruh baris dan
+   * memvalidasi ulang nama, email, serta setiap peran. Baris warisan bisa
+   * gagal di situ — dan yang gagal justru pencabutan akses, hal yang paling
+   * mendesak saat ada masalah. PATCH hanya menyentuh kolom `aktif`.
+   */
+  async function ubahStatus(s: Staf) {
+    setSibuk(true); setPesan(""); setGagal(false);
+    const r = await apiAdmin("/api/admin/staf", {
+      metode: "PATCH", body: { email: s.email, aktif: !s.aktif },
+    });
+    setSibuk(false);
+    if (!r.ok) { setGagal(true); setPesan(r.pesan ?? "Gagal mengubah status"); return; }
+    setPesan(`${s.nama} ${s.aktif ? "dinonaktifkan" : "diaktifkan"}.`);
+    await muatUlang();
+  }
+
   async function simpan() {
     if (!form) return;
     setSibuk(true); setPesan(""); setGagal(false);
@@ -172,7 +191,15 @@ export default function Bagian() {
                   </td>
                   <td>{s.aktif ? <Badge warna="good">aktif</Badge> : <Badge warna="mute">nonaktif</Badge>}</td>
                   <td>{waktuSingkat(s.diubah)}</td>
-                  <td><button type="button" className="btn sm" onClick={() => buka(s)}>Ubah</button></td>
+                  <td>
+                    <div className="a-aksi">
+                      <button type="button" className="btn sm" onClick={() => buka(s)}>Ubah</button>
+                      <button type="button" className="btn sm" disabled={sibuk}
+                        onClick={() => void ubahStatus(s)}>
+                        {s.aktif ? "Nonaktifkan" : "Aktifkan"}
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {staf.length === 0 && !sedang ? (

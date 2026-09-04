@@ -259,3 +259,69 @@ SELECT uji_ok('013 perubahan peran tercatat di audit',
 -- Kembalikan keadaan untuk berkas uji berikutnya.
 SELECT staf_simpan('gm@semesta.sch.id', 'Andy (GM)', '{manajemen,admin_it,keuangan,tu}', TRUE, 'uji');
 SELECT staf_simpan('it@semesta.sch.id', 'Admin IT', '{admin_it}', TRUE, 'uji');
+
+-- ---------------------------------------------------------------------
+-- 014 — status menu bisa diubah walau baris lamanya melanggar aturan baru
+--
+-- menu_simpan() menuntut harga kelipatan Rp 100; tabelnya sendiri hanya
+-- menuntut > 0. Baris lama yang masuk lewat impor karena itu tidak bisa
+-- dihentikan penjualannya lewat menu_simpan — dan menghentikan penjualan
+-- justru hal yang biasanya mendesak.
+-- ---------------------------------------------------------------------
+INSERT INTO menu (nama, harga_rp, aktif, po_bisa) VALUES ('X', 50, TRUE, TRUE) RETURNING id AS mlama \gset
+SELECT uji_gagal('014 menu_simpan menolak baris lama (harga bukan kelipatan 100)',
+  $$SELECT menu_simpan($$ || :mlama || $$, 'X', NULL, 50, FALSE, NULL, NULL, 'uji')$$,
+  'NILAI_TIDAK_VALID');
+
+SELECT menu_status(:mlama, FALSE, NULL, 'uji');
+SELECT uji_ok('014 menu_status tetap bisa menghentikan penjualannya',
+  (SELECT NOT aktif AND po_bisa FROM menu WHERE id = :mlama));
+
+SELECT menu_status(:mlama, NULL, FALSE, 'uji');
+SELECT uji_ok('014 menu_status mengubah po_bisa tanpa menyentuh aktif',
+  (SELECT NOT aktif AND NOT po_bisa FROM menu WHERE id = :mlama));
+
+SELECT uji_gagal('014 menu_status menolak panggilan tanpa perubahan',
+  $$SELECT menu_status($$ || :mlama || $$, NULL, NULL, 'uji')$$, 'NILAI_TIDAK_VALID');
+SELECT uji_gagal('014 menu_status menolak menu yang tidak ada',
+  $$SELECT menu_status(999999, FALSE, NULL, 'uji')$$, 'TIDAK_DITEMUKAN');
+SELECT uji_ok('014 perubahan status menu tercatat di audit',
+  EXISTS (SELECT 1 FROM audit_log WHERE aksi = 'ubah_status_menu' AND objek = 'menu:' || :mlama));
+
+-- ---------------------------------------------------------------------
+-- 015 — akses staf tetap bisa dicabut walau barisnya melanggar aturan baru
+--
+-- Pencabutan akses adalah aksi yang paling mendesak saat ada masalah, jadi
+-- ia tidak boleh bergantung pada validasi kolom yang tidak disentuh.
+-- ---------------------------------------------------------------------
+INSERT INTO staf (email, nama, peran, aktif)
+VALUES ('warisan@semesta.sch.id', 'X', '{tu}', TRUE);
+-- Nama 1 huruf hanya ditolak validator route (v.str min 2), bukan SQL — jadi
+-- baris seperti ini bisa masuk lewat impor. Yang diuji di sini: SQL tetap
+-- membiarkan aksesnya dicabut.
+SELECT staf_status('warisan@semesta.sch.id', FALSE, 'uji');
+SELECT uji_ok('015 staf dengan data warisan tetap bisa dinonaktifkan',
+  (SELECT NOT aktif FROM staf WHERE email = 'warisan@semesta.sch.id'));
+SELECT uji_ok('015 pencabutan akses tercatat di audit',
+  EXISTS (SELECT 1 FROM audit_log WHERE aksi = 'ubah_status_staf' AND objek = 'staf:warisan@semesta.sch.id'));
+
+SELECT staf_status('warisan@semesta.sch.id', TRUE, 'uji');
+SELECT uji_ok('015 bisa diaktifkan lagi',
+  (SELECT aktif FROM staf WHERE email = 'warisan@semesta.sch.id'));
+
+SELECT uji_gagal('015 staf tidak dikenal ditolak',
+  $$SELECT staf_status('bukansiapa@semesta.sch.id', FALSE, 'uji')$$, 'TIDAK_DITEMUKAN');
+
+-- Penjaga 013 tidak boleh bisa dilewati lewat jalur ini.
+SELECT staf_simpan('gm@semesta.sch.id', 'Andy (GM)', '{manajemen,keuangan,tu}', TRUE, 'uji');
+SELECT staf_simpan('it2@semesta.sch.id', 'Admin IT Dua', '{tu}', TRUE, 'uji');
+SELECT staf_simpan('it@semesta.sch.id', 'Admin IT', '{admin_it}', TRUE, 'uji');
+SELECT uji_ok('015 tepat satu admin IT aktif tersisa untuk uji',
+  (SELECT COUNT(*) FROM staf WHERE aktif AND 'admin_it' = ANY(peran)) = 1);
+SELECT uji_gagal('015 staf_status bukan jalan memutar untuk penjaga admin terakhir',
+  $$SELECT staf_status('it@semesta.sch.id', FALSE, 'uji')$$, 'ADMIN_TERAKHIR');
+SELECT uji_ok('015 admin IT terakhir masih aktif setelah penolakan',
+  (SELECT aktif FROM staf WHERE email = 'it@semesta.sch.id'));
+
+-- Kembalikan keadaan.
+SELECT staf_simpan('gm@semesta.sch.id', 'Andy (GM)', '{manajemen,admin_it,keuangan,tu}', TRUE, 'uji');

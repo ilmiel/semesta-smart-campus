@@ -91,10 +91,10 @@ Terminal tidak pernah menerima hash. Transaksi offline tidak pernah membawa PIN 
 | `/api/admin/device` | status terminal (F-93) | POST daftarkan → **kunci sekali tampil** | admin_it |
 | `/api/admin/device/[kode]` | — | `{aksi: nonaktif\|aktif\|ganti_kunci\|ubah}` | admin_it |
 | `/api/admin/kebijakan` | semua | PUT `{kunci,nilai}` atau `{ambang_pin_rp}` (F-33) | admin_it, manajemen, keuangan |
-| `/api/admin/staf` | daftar | POST simpan peran | admin_it |
+| `/api/admin/staf` | daftar (admin_it, manajemen) | POST simpan peran · PATCH `{email, aktif}` aktifkan/nonaktifkan saja | admin_it |
 | `/api/admin/audit?objek=&aktor=&aksi=` | jejak (F-95) | — | admin_it, keuangan, manajemen |
 | `/api/admin/kesiswaan?kelas=` | kesejahteraan (F-94) + bacaan, tanpa rupiah | — | kesiswaan, wali_kelas, manajemen |
-| `/api/admin/kantin/menu` | menu | POST simpan (F-41) | tu, admin_it, manajemen |
+| `/api/admin/kantin/menu` | menu | POST simpan (F-41) · PATCH `{id, aktif?, po_bisa?}` ubah status saja | tu, admin_it, manajemen |
 | `/api/admin/kantin/po?tanggal=` | pesanan + dapur | POST `{aksi:"tutup_hari"}` | tu, admin_it, keuangan |
 | `/api/admin/kantin/rekap?dari=&sampai=` | per terminal (F-46), terlaris | — | kasir, tu, keuangan, admin_it, manajemen |
 | `/api/admin/keuangan/rekonsiliasi` | log + akun sistem + float (§8.4) | POST jalankan sekarang | keuangan, admin_it |
