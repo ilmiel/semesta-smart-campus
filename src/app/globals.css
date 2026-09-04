@@ -83,7 +83,7 @@ main.adm { padding:22px 28px 48px; min-width:0; }
 .crumb { font-size:13px; color:var(--ink-3); margin-bottom:6px; }
 .crumb a { color:var(--accent-ink); cursor:pointer; }
 
-.demo { background:var(--warn-soft); color:var(--warn-text); border-radius:6px; padding:8px 14px; font-size:13px; margin-bottom:18px; }
+.demo { background:var(--warn-soft); color:var(--warn-text); border-radius:6px; padding:8px 14px; font-size:13px; margin-bottom:14px; }
 
 /* Tombol & form */
 .btn { display:inline-flex; align-items:center; gap:6px; font:600 13px/1 var(--font-sans);
@@ -120,7 +120,15 @@ label.f { display:block; font-size:12px; font-weight:600; color:var(--ink-2); ma
 .row2 { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.4fr); gap:14px; margin-bottom:14px; }
 .row3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px; margin-bottom:14px; }
 @media (max-width:1100px) { .row, .row2 { grid-template-columns:1fr; } }
-.panel { background:var(--surface); border:1px solid var(--rule); border-radius:10px; padding:16px 18px; box-shadow:var(--shadow); min-width:0; }
+/* Jarak antar panel.
+   Sebelumnya .panel tidak punya margin sama sekali: yang memberi jarak hanya
+   .kpis/.row/.row2/.row3 (gap 14px). Akibatnya halaman yang menumpuk panel
+   berdiri sendiri — Siswa, Staf, Kebijakan, Perangkat — panelnya menempel
+   tanpa celah, sementara halaman yang memakai grid punya 14px. Satu skala
+   jarak: 14px, dari mana pun panel itu datang. Di dalam grid dinolkan supaya
+   tidak menumpuk dengan gap. */
+.panel { background:var(--surface); border:1px solid var(--rule); border-radius:10px; padding:16px 18px; box-shadow:var(--shadow); min-width:0; margin-bottom:14px; }
+.kpis > .panel, .row > .panel, .row2 > .panel, .row3 > .panel { margin-bottom:0; }
 .panel h2 { font-size:14px; margin:0; }
 .panel .hd { display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
 .panel .hd .sub { font-size:12px; color:var(--ink-3); }
@@ -393,4 +401,4 @@ input[type=time], input[type=date], textarea {
    "admin@semesta.sch.id" yang hardcoded — bukan sekadar data contoh, tapi
    klaim identitas palsu di layar yang dipakai untuk keputusan uang. */
 .adm-akun { display:flex; align-items:center; gap:10px; justify-content:flex-end;
-  flex-wrap:wrap; margin-bottom:12px; }
+  flex-wrap:wrap; margin-bottom:14px; }
