@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Badge, CatatanKaki, Panel, Tile } from "@/components/ui";
-import { apiAdmin, useMuat, waktuSingkat } from "@/lib/admin";
+import { api, useMuat, waktuSingkat } from "@/lib/api";
 import { rp } from "@/lib/format";
 
 /**
@@ -70,7 +70,7 @@ export default function Bagian({ peran }: { peran: string[] }) {
 
   async function kirim(body: Record<string, unknown>, sukses: string) {
     setSibuk(true); setPesan(""); setGagal(false);
-    const r = await apiAdmin("/api/admin/vending", { metode: "POST", body });
+    const r = await api("/api/admin/vending", { metode: "POST", body });
     setSibuk(false);
     if (!r.ok) { setGagal(true); setPesan(r.pesan ?? "Aksi ditolak"); return false; }
     setPesan(sukses);

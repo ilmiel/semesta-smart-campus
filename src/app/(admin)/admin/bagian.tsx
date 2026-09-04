@@ -3,7 +3,7 @@
 import Link from "next/link";
 import ChartJam, { type Jam } from "@/components/ChartJam";
 import { Att, Badge, CatatanKaki, JenChip, Panel, Tile } from "@/components/ui";
-import { sejak, useMuat, waktuSingkat } from "@/lib/admin";
+import { sejak, useMuat, waktuSingkat } from "@/lib/api";
 import { rp, ribuan } from "@/lib/format";
 
 /**

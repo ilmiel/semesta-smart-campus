@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CatatanKaki, Panel } from "@/components/ui";
-import { apiAdmin, useMuat, waktuSingkat } from "@/lib/admin";
+import { api, useMuat, waktuSingkat } from "@/lib/api";
 import { rp } from "@/lib/format";
 
 /**
@@ -154,7 +154,7 @@ function Baris({ isi, pasangan, selesai }: {
       ? { ambang_pin_rp: nilai }
       : { kunci: isi.kunci, nilai };
 
-    const r = await apiAdmin("/api/admin/kebijakan", { metode: "PUT", body });
+    const r = await api("/api/admin/kebijakan", { metode: "PUT", body });
     setSibuk(false);
     if (!r.ok) { setGagal(true); setPesan(r.pesan ?? "Gagal menyimpan"); return; }
     setPesan("Tersimpan.");

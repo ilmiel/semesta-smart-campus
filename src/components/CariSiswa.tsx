@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { apiAdmin } from "@/lib/admin";
+import { api } from "@/lib/api";
 
 /**
  * Pencarian siswa untuk form admin.
@@ -30,7 +30,7 @@ export default function CariSiswa({ terpilih, onPilih, autoFocus }: {
     const t = setTimeout(async () => {
       const punyaku = ++urut.current;
       setCari(true);
-      const r = await apiAdmin<{ siswa: SiswaRingkas[] }>(
+      const r = await api<{ siswa: SiswaRingkas[] }>(
         `/api/admin/siswa?status=aktif&q=${encodeURIComponent(q.trim())}`);
       if (punyaku !== urut.current) return;
       setCari(false);

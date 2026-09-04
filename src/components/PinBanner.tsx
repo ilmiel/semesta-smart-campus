@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { apiAdmin } from "@/lib/admin";
+import { api } from "@/lib/api";
 
 /**
  * Pintu masuk ke layar ganti PIN, dipasang di atas portal siswa.
@@ -19,7 +19,7 @@ export default function PinBanner() {
 
   useEffect(() => {
     void (async () => {
-      const r = await apiAdmin<{ siswa: { pin_ada: boolean; pin_harus_ganti: boolean | null } }>("/api/siswa/saya");
+      const r = await api<{ siswa: { pin_ada: boolean; pin_harus_ganti: boolean | null } }>("/api/siswa/saya");
       if (r.ok) setPerlu(Boolean(r.data!.siswa.pin_ada && r.data!.siswa.pin_harus_ganti));
     })();
   }, []);

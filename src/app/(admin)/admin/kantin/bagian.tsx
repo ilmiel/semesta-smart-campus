@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Badge, CatatanKaki, Panel, Tile } from "@/components/ui";
-import { apiAdmin, waktuSingkat } from "@/lib/admin";
+import { api, waktuSingkat } from "@/lib/api";
 import { rp, ribuan } from "@/lib/format";
 
 /**
@@ -57,9 +57,9 @@ export default function Bagian() {
   const muat = useCallback(async () => {
     setSedang(true);
     const [m, p, k] = await Promise.all([
-      apiAdmin<{ menu: Menu[]; kategori: Kategori[] }>("/api/admin/kantin/menu"),
-      apiAdmin<{ pesanan: Pesanan[]; dapur: Dapur[]; jendela: Jendela }>("/api/admin/kantin/po"),
-      apiAdmin<{ kebijakan: Kebijakan[] }>("/api/admin/kebijakan"),
+      api<{ menu: Menu[]; kategori: Kategori[] }>("/api/admin/kantin/menu"),
+      api<{ pesanan: Pesanan[]; dapur: Dapur[]; jendela: Jendela }>("/api/admin/kantin/po"),
+      api<{ kebijakan: Kebijakan[] }>("/api/admin/kebijakan"),
     ]);
     setSedang(false);
     const rusak = [m, p, k].find(x => !x.ok);
@@ -79,7 +79,7 @@ export default function Bagian() {
   async function simpanMenu() {
     if (!form) return;
     setSibuk(true); setPesan(""); setGagal(false);
-    const r = await apiAdmin("/api/admin/kantin/menu", {
+    const r = await api("/api/admin/kantin/menu", {
       metode: "POST",
       body: {
         id: form.id, nama: form.nama.trim(),
@@ -103,7 +103,7 @@ export default function Bagian() {
    */
   async function ubahMenu(m: Menu, ubah: { aktif?: boolean; po_bisa?: boolean }) {
     setSibuk(true); setPesan(""); setGagal(false);
-    const r = await apiAdmin("/api/admin/kantin/menu", {
+    const r = await api("/api/admin/kantin/menu", {
       metode: "PATCH", body: { id: m.id, ...ubah },
     });
     setSibuk(false);
@@ -121,7 +121,7 @@ export default function Bagian() {
     const tersimpan: string[] = [];
     for (const k of berubah) {
       const nilai: unknown = k === "po_aktif" ? po[k] === "true" : po[k];
-      const r = await apiAdmin("/api/admin/kebijakan", { metode: "PUT", body: { kunci: k, nilai } });
+      const r = await api("/api/admin/kebijakan", { metode: "PUT", body: { kunci: k, nilai } });
       if (!r.ok) {
         setSibuk(false); setGagal(true);
         // Penyimpanan tidak atomik: kunci sebelum yang gagal SUDAH tersimpan.
@@ -142,7 +142,7 @@ export default function Bagian() {
 
   async function jalankanTutupHari() {
     setSibuk(true); setPesan(""); setGagal(false);
-    const r = await apiAdmin<Record<string, unknown>>("/api/admin/kantin/po", {
+    const r = await api<Record<string, unknown>>("/api/admin/kantin/po", {
       metode: "POST", body: { aksi: "tutup_hari" },
     });
     setSibuk(false); setTutupHari(false);

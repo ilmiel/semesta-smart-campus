@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Badge, CatatanKaki, Panel } from "@/components/ui";
-import { apiAdmin, useMuat, waktuSingkat } from "@/lib/admin";
+import { api, useMuat, waktuSingkat } from "@/lib/api";
 
 /**
  * Akun staf & peran (RBAC).
@@ -67,7 +67,7 @@ export default function Bagian() {
    */
   async function ubahStatus(s: Staf) {
     setSibuk(true); setPesan(""); setGagal(false);
-    const r = await apiAdmin("/api/admin/staf", {
+    const r = await api("/api/admin/staf", {
       metode: "PATCH", body: { email: s.email, aktif: !s.aktif },
     });
     setSibuk(false);
@@ -79,7 +79,7 @@ export default function Bagian() {
   async function simpan() {
     if (!form) return;
     setSibuk(true); setPesan(""); setGagal(false);
-    const r = await apiAdmin<{ id: number }>("/api/admin/staf", { metode: "POST", body: form });
+    const r = await api<{ id: number }>("/api/admin/staf", { metode: "POST", body: form });
     setSibuk(false);
     if (!r.ok) { setGagal(true); setPesan(r.pesan ?? "Gagal menyimpan"); return; }
     setForm(null); setUbahEmail(null);

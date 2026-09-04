@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Badge, CatatanKaki, Panel, type WarnaBadge } from "@/components/ui";
-import { apiAdmin, sejak, useMuat } from "@/lib/admin";
+import { api, sejak, useMuat } from "@/lib/api";
 import { rp } from "@/lib/format";
 
 /**
@@ -58,7 +58,7 @@ export default function Bagian() {
   async function daftarkan() {
     if (!baru) return;
     setSibuk(true); setPesan(""); setGagal(false);
-    const r = await apiAdmin<{ kode: string; kunci: string }>("/api/admin/device", {
+    const r = await api<{ kode: string; kunci: string }>("/api/admin/device", {
       metode: "POST",
       body: {
         kode: baru.kode.trim(), nama: baru.nama.trim(), layanan: baru.layanan,
@@ -75,7 +75,7 @@ export default function Bagian() {
 
   async function jalankan(kode: string, body: Record<string, unknown>) {
     setSibuk(true); setPesan(""); setGagal(false);
-    const r = await apiAdmin<{ kunci?: string }>(`/api/admin/device/${encodeURIComponent(kode)}`, { metode: "POST", body });
+    const r = await api<{ kunci?: string }>(`/api/admin/device/${encodeURIComponent(kode)}`, { metode: "POST", body });
     setSibuk(false);
     if (!r.ok) { setGagal(true); setPesan(r.pesan ?? "Aksi ditolak"); return; }
     if (r.data?.kunci) setRahasia({ kode, kunci: r.data.kunci });

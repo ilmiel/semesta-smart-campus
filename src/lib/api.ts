@@ -1,15 +1,22 @@
 "use client";
 
 /**
- * Perkakas halaman admin: pemanggilan API + pemuatan data.
+ * Pemanggilan API + pemuatan data untuk semua halaman bersesi: dashboard
+ * admin, portal orang tua, portal siswa.
+ *
+ * Sengaja BUKAN `lib/admin.ts` seperti sebelumnya. Namanya menyesatkan begitu
+ * portal ortu dan siswa ikut memakainya — dan nama yang menyesatkan adalah
+ * undangan bagi orang berikutnya untuk menambahkan header khusus admin di
+ * sini, lalu diam-diam merusak portal.
  *
  * Bedanya dengan `lib/terminal.ts`: di sini identitas datang dari cookie sesi
- * Better Auth, bukan kunci perangkat, jadi tidak ada header khusus. Yang perlu
- * ditangani justru kebalikannya — sesi bisa habis di tengah kerja, dan staf
- * harus tahu itu alih-alih melihat tabel kosong tanpa penjelasan.
+ * Better Auth, bukan kunci perangkat, jadi tidak ada header khusus sama
+ * sekali. Yang perlu ditangani justru kebalikannya — sesi bisa habis di
+ * tengah kerja, dan orangnya harus tahu itu alih-alih melihat layar kosong
+ * tanpa penjelasan.
  *
  * Tidak ada aturan bisnis di berkas ini. Semua keputusan (boleh/tidak, batas,
- * urutan) tetap di server; halaman admin hanya menampilkan dan meminta.
+ * urutan) tetap di server; halaman hanya menampilkan dan meminta.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -24,7 +31,7 @@ export interface Jawaban<T> {
   putus?: boolean;
 }
 
-export async function apiAdmin<T>(
+export async function api<T>(
   jalur: string,
   opsi: { metode?: string; body?: unknown } = {},
 ): Promise<Jawaban<T>> {
@@ -64,7 +71,7 @@ export function useMuat<T>(jalur: string) {
   const muatUlang = useCallback(async () => {
     const punyaku = ++urut.current;
     setSedang(true);
-    const r = await apiAdmin<T>(jalur);
+    const r = await api<T>(jalur);
     if (punyaku !== urut.current) return;   // sudah didahului permintaan lebih baru
     setSedang(false);
     if (!r.ok) { setGalat(r.pesan ?? "Gagal memuat data"); return; }

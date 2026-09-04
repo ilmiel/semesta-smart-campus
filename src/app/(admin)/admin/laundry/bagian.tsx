@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Badge, CatatanKaki, Panel } from "@/components/ui";
-import { apiAdmin, useMuat, waktuSingkat } from "@/lib/admin";
+import { api, useMuat, waktuSingkat } from "@/lib/api";
 import { rp } from "@/lib/format";
 
 /**
@@ -44,7 +44,7 @@ export default function Bagian() {
 
   async function kirim(body: unknown) {
     setSibuk(true); setPesan(""); setGagal(false);
-    const r = await apiAdmin("/api/admin/laundry", { metode: "POST", body });
+    const r = await api("/api/admin/laundry", { metode: "POST", body });
     setSibuk(false);
     if (!r.ok) { setGagal(true); setPesan(r.pesan ?? "Aksi ditolak"); return false; }
     await muatUlang();

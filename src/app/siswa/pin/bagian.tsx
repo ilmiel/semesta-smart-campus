@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { apiAdmin } from "@/lib/admin";
+import { api } from "@/lib/api";
 
 /**
  * Siswa mengganti PIN-nya sendiri.
@@ -38,7 +38,7 @@ export default function Bagian() {
 
   useEffect(() => {
     void (async () => {
-      const r = await apiAdmin<Saya>("/api/siswa/saya");
+      const r = await api<Saya>("/api/siswa/saya");
       if (r.ok) setSaya(r.data!);
     })();
   }, []);
@@ -49,7 +49,7 @@ export default function Bagian() {
 
   async function simpan() {
     setSibuk(true); setPesan(""); setGagal(false);
-    const r = await apiAdmin("/api/siswa/pin", { metode: "POST", body: { pin_lama: lama, pin_baru: baru } });
+    const r = await api("/api/siswa/pin", { metode: "POST", body: { pin_lama: lama, pin_baru: baru } });
     setSibuk(false);
     if (!r.ok) { setGagal(true); setPesan(r.pesan ?? "PIN gagal diganti"); return; }
     setLama(""); setBaru(""); setUlang(""); setSelesai(true);

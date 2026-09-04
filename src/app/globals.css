@@ -362,7 +362,7 @@ footer.ft { margin-top:22px; font-size:12px; color:var(--ink-3); }
    sentuh; admin dipakai dari meja dengan mouse, jadi pesannya
    sekelas teks tabel, bukan spanduk.
    ============================================================ */
-input[type=time], input[type=date], textarea {
+input[type=time], input[type=date], input[type=month], textarea {
   font:14px var(--font-sans); color:var(--ink); background:var(--surface);
   border:1px solid var(--rule); border-radius:7px; padding:9px 12px; }
 

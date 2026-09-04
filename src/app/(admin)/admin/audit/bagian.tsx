@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { CatatanKaki, Panel } from "@/components/ui";
-import { apiAdmin, waktuSingkat } from "@/lib/admin";
+import { api, waktuSingkat } from "@/lib/api";
 
 /**
  * Penampil jejak audit.
@@ -46,7 +46,7 @@ export default function Bagian() {
     if (aksi.trim()) p.set("aksi", aksi.trim());
     if (objek.trim()) p.set("objek", objek.trim());
     p.set("limit", limit);
-    const r = await apiAdmin<{ audit: Baris[] }>(`/api/admin/audit?${p.toString()}`);
+    const r = await api<{ audit: Baris[] }>(`/api/admin/audit?${p.toString()}`);
     if (punyaku !== urut.current) return;
     setSedang(false);
     if (!r.ok) { setGalat(r.pesan ?? "Gagal memuat jejak audit"); return; }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge, CatatanKaki, Panel } from "@/components/ui";
-import { apiAdmin } from "@/lib/admin";
+import { api } from "@/lib/api";
 import { rp } from "@/lib/format";
 
 /**
@@ -56,7 +56,7 @@ export default function Bagian() {
     if (status) p.set("status", status);
     if (kelas.trim()) p.set("kelas", kelas.trim());
     if (kartu) p.set("kartu", kartu);
-    const r = await apiAdmin<{ siswa: Siswa[] }>(`/api/admin/siswa?${p.toString()}`);
+    const r = await api<{ siswa: Siswa[] }>(`/api/admin/siswa?${p.toString()}`);
     if (punyaku !== urut.current) return;
     setSedang(false);
     if (!r.ok) { setGalat(r.pesan ?? "Gagal memuat daftar siswa"); return; }
@@ -75,7 +75,7 @@ export default function Bagian() {
   async function simpanBaru() {
     if (!tambah) return;
     setSibuk(true); setPesan(""); setGagalTambah(false);
-    const r = await apiAdmin<{ id: number }>("/api/admin/siswa", {
+    const r = await api<{ id: number }>("/api/admin/siswa", {
       metode: "POST",
       body: {
         nis: tambah.nis.trim(), nama: tambah.nama.trim(),

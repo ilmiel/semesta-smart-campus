@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge, CatatanKaki, Panel, Tile } from "@/components/ui";
-import { apiAdmin, waktuSingkat } from "@/lib/admin";
+import { api, waktuSingkat } from "@/lib/api";
 import { rp } from "@/lib/format";
 
 /**
@@ -64,7 +64,7 @@ export default function Bagian() {
   const muat = useCallback(async () => {
     const punyaku = ++urut.current;
     setSedang(true);
-    const r = await apiAdmin<Isi>(`/api/admin/perpus${cari.trim() ? `?q=${encodeURIComponent(cari.trim())}` : ""}`);
+    const r = await api<Isi>(`/api/admin/perpus${cari.trim() ? `?q=${encodeURIComponent(cari.trim())}` : ""}`);
     if (punyaku !== urut.current) return;
     setSedang(false);
     if (!r.ok) { setGalat(r.pesan ?? "Gagal memuat data perpustakaan"); return; }
@@ -84,7 +84,7 @@ export default function Bagian() {
 
   async function kirim(body: Record<string, unknown>, sukses: string) {
     setSibuk(true); setPesan(""); setGagal(false);
-    const r = await apiAdmin("/api/admin/perpus", { metode: "POST", body });
+    const r = await api("/api/admin/perpus", { metode: "POST", body });
     setSibuk(false);
     if (!r.ok) { setGagal(true); setPesan(r.pesan ?? "Aksi ditolak"); return; }
     setDialog(null); setPesan(sukses);

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import CariSiswa, { type SiswaRingkas } from "@/components/CariSiswa";
 import { Badge, CatatanKaki, Panel, Tile } from "@/components/ui";
-import { apiAdmin, useMuat, waktuSingkat } from "@/lib/admin";
+import { api, useMuat, waktuSingkat } from "@/lib/api";
 import { rp } from "@/lib/format";
 
 /**
@@ -52,7 +52,7 @@ export default function Bagian() {
   async function minta() {
     if (!siswa) return;
     setSibuk(true); setPesan(""); setGagal(false);
-    const r = await apiAdmin<{ permintaan_id: number }>("/api/admin/keuangan/topup-tunai", {
+    const r = await api<{ permintaan_id: number }>("/api/admin/keuangan/topup-tunai", {
       metode: "POST",
       body: { siswa_id: siswa.id, nominal_rp: Number(nominal), catatan: catatan.trim() || undefined },
     });
@@ -65,7 +65,7 @@ export default function Bagian() {
 
   async function putus(id: number, aksi: "setujui" | "tolak" | "batal", alasan?: string) {
     setSibuk(true); setPesan(""); setGagal(false);
-    const r = await apiAdmin<{ status: string; saldo_rp: number }>("/api/admin/keuangan/topup-tunai", {
+    const r = await api<{ status: string; saldo_rp: number }>("/api/admin/keuangan/topup-tunai", {
       metode: "PATCH", body: { permintaan_id: id, aksi, alasan },
     });
     setSibuk(false);

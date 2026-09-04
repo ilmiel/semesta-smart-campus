@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Badge, CatatanKaki, Panel, Tile } from "@/components/ui";
-import { apiAdmin, useMuat, waktuSingkat } from "@/lib/admin";
+import { api, useMuat, waktuSingkat } from "@/lib/api";
 import { rp } from "@/lib/format";
 
 /**
@@ -101,7 +101,7 @@ export default function Bagian({ nis }: { nis: string }) {
 
   async function kirim(sub: string, body: unknown, metode = "POST") {
     setSibuk(true); setPesan(""); setGagal(false);
-    const r = await apiAdmin<Record<string, unknown>>(`${jalur}${sub}`, { metode, body });
+    const r = await api<Record<string, unknown>>(`${jalur}${sub}`, { metode, body });
     setSibuk(false);
     if (!r.ok) { setGagal(true); setPesan(r.pesan ?? "Aksi ditolak"); return false; }
     if (typeof r.data?.pin_sementara === "string") setRahasia(r.data.pin_sementara);
