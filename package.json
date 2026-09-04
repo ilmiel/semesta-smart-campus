@@ -16,7 +16,7 @@
     "uji:api:shim": "tsx --tsconfig tests/tsconfig.json tests/uji_api.ts"
   },
   "dependencies": {
-    "better-auth": "^1.3.0",
+    "better-auth": "1.7.2",
     "next": "^16.2.9",
     "nodemailer": "^6.9.0",
     "pg": "^8.13.0",
@@ -33,6 +33,7 @@
     "eslint": "^9",
     "eslint-config-next": "^16.2.9",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   }
 }
