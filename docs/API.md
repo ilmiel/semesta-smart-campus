@@ -100,7 +100,7 @@ Terminal tidak pernah menerima hash. Transaksi offline tidak pernah membawa PIN 
 | `/api/admin/keuangan/rekonsiliasi` | log + akun sistem + float (§8.4) | POST jalankan sekarang | keuangan, admin_it |
 | `/api/admin/keuangan/settlement?dari=&sampai=` | per unit (F-92) | — | keuangan, manajemen |
 | `/api/admin/keuangan/koreksi` | refund/koreksi/penarikan | POST `{jenis: refund\|koreksi\|penarikan, …}` | keuangan |
-| `/api/admin/keuangan/topup-tunai` | — | `{siswa_id, nominal_rp, disetujui_oleh, catatan?}` (F-23) | tu, keuangan |
+| `/api/admin/keuangan/topup-tunai` | permintaan menunggu + riwayat (tu, keuangan, manajemen, admin_it) | **Dua langkah (F-23, audit §2.5).** POST `{siswa_id, nominal_rp, catatan?}` membuat permintaan — uang belum bergerak. PATCH `{permintaan_id, aksi: setujui\|tolak\|batal, alasan?}` memutuskan; penyetuju diambil dari **sesi pemutus**, tidak pernah dari isian, dan tidak boleh sama dengan peminta. Permintaan hangus setelah `topup_tunai_kedaluwarsa_menit`. | tu, keuangan |
 | `/api/admin/keuangan/antrian-ditolak` | offline ditolak (F-44) | — | keuangan, admin_it |
 | `/api/admin/keuangan/tagihan` | menunggu | POST `{id, aksi: bebaskan\|bayar}` | keuangan, tu |
 | `/api/admin/keuangan/sengketa` | sengketa vending | POST `{id, kabulkan, keputusan}` | keuangan |

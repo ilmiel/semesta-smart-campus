@@ -43,6 +43,12 @@ export default function PortalOrtu() {
       </div>
 
       <div className="p-wrap">
+        {/* Data di bawah ini masih CONTOH (Fase 1.3), ditandai terang-terangan:
+            halaman ini kini di balik penjaga login, jadi yang membacanya adalah
+            orang tua sungguhan — dan angka saldo karangan tanpa label akan
+            dipercaya. */}
+        <div className="demo">Saldo, riwayat, dan tagihan di halaman ini masih data contoh — belum tersambung ke data anak Anda yang sebenarnya.</div>
+
         {d.kartuHilang ? (
           <div className="stat-hilang" style={{ marginBottom: 14 }}>
             ⚠ Kartu {d.nama} <b>diblokir</b> — dilaporkan hilang tadi pagi lewat portal siswa. Kartu baru

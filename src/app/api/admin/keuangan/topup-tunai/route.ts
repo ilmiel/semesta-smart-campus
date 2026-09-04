@@ -1,49 +1,101 @@
 /**
- * POST /api/admin/keuangan/topup-tunai { siswa_id, nominal_rp, disetujui_oleh, catatan? } — F-23.
- * Yang login = yang menginput; `disetujui_oleh` = email staf kedua.
+ * Top-up tunai dengan kontrol dua orang yang sungguhan (F-23, audit §2.5).
  *
- * Audit §2.5 — BATAS YANG DIKETAHUI. "Dua tanda tangan" di sini masih berupa
- * email yang diketik penginput, bukan persetujuan dari sesi orang kedua.
- * Artinya satu petugas TU secara teknis masih bisa mengisi saldo sendirian
- * sambil mencantumkan nama rekan.
+ * GET   — permintaan yang menunggu + riwayat keputusan terakhir.
+ * POST  { siswa_id, nominal_rp, catatan? }        — LANGKAH 1: buat permintaan.
+ *         Tidak ada uang yang bergerak. Peminta diambil dari sesi.
+ * PATCH { permintaan_id, aksi: "setujui"|"tolak"|"batal", alasan? }
+ *                                                  — LANGKAH 2: keputusan.
+ *         Pemutus diambil dari SESI PEMUTUS, tidak pernah dari isian.
  *
- * Yang sudah ditegakkan sekarang:
- *   - kedua pihak harus staf aktif berperan keuangan/tu (migrasi 011);
- *   - penyetuju DIBERI TAHU lewat email setiap kali namanya dipakai, jadi
- *     penyalahgunaan tidak bisa berlangsung diam-diam.
+ * Sebelum ini endpoint ini menerima `disetujui_oleh` sebagai teks. Yang
+ * diperiksa hanya bahwa emailnya berbeda dan berperan keuangan/tu — jadi satu
+ * petugas bisa mengisi saldo sendirian sambil mencantumkan nama rekan yang
+ * tidak pernah tahu. Jejak auditnya rapi, dan justru itu bagian terburuknya:
+ * kontrol yang terlihat ada membuat orang berhenti mencari kontrol lain.
  *
- * Yang masih harus dikerjakan sebelum menangani uang sungguhan: token
- * persetujuan sekali pakai yang diterbitkan dari sesi penyetuju sendiri.
+ * Tidak ada lagi jalur yang menerima identitas penyetuju dari klien. Kalau
+ * suatu saat ada yang menambahkannya kembali "supaya cepat", seluruh gunanya
+ * hilang lagi.
  */
-import { fnSatu } from "@/server/db";
-import { ok, tangani } from "@/server/http";
+import { after } from "next/server";
+import { fnSatu, q, skalar } from "@/server/db";
+import { HttpError, ok, tangani } from "@/server/http";
 import { kirimEmail } from "@/server/notifikasi";
 import { aktor, wajibPeran } from "@/server/sesi";
 import { bacaBody, v } from "@/server/validasi";
 
+export const GET = tangani(async (req) => {
+  const p = await wajibPeran(req, "tu", "keuangan", "manajemen", "admin_it");
+  const [menunggu, riwayat] = await Promise.all([
+    q(`SELECT * FROM v_topup_tunai_menunggu ORDER BY dibuat`),
+    q(`SELECT * FROM v_topup_tunai_riwayat ORDER BY diputus_pada DESC NULLS LAST LIMIT 50`),
+  ]);
+  // `saya` dikirim supaya layar bisa menampilkan hanya aksi yang berlaku:
+  // peminta tidak bisa menyetujui permintaannya sendiri, dan orang lain tidak
+  // bisa membatalkannya. Tombol yang pasti gagal untuk separuh pengguna tidak
+  // punya tempat di layar yang menggerakkan uang.
+  //
+  // Ini kenyamanan, bukan penjaga: keputusannya tetap ditegakkan server.
+  return ok({ menunggu, riwayat, saya: aktor(p) });
+});
+
 export const POST = tangani(async (req) => {
   const p = await wajibPeran(req, "tu", "keuangan");
   const b = await bacaBody(req, v.obj({
-    siswa_id: v.id(), nominal_rp: v.rupiah({ min: 1000 }),
-    disetujui_oleh: v.email(), catatan: v.str({ max: 200 }).opsional(),
+    siswa_id: v.id(), nominal_rp: v.rupiah({ min: 1000 }), catatan: v.str({ max: 200 }).opsional(),
   }));
-  const hasil = await fnSatu<{ topup_id: number; transaksi_id: number; saldo_rp: number }>(
-    "topup_tunai", [b.siswa_id, b.nominal_rp, aktor(p), b.disetujui_oleh, b.catatan ?? null]);
+  const permintaan_id = await skalar<number>(
+    "topup_tunai_minta", [b.siswa_id, b.nominal_rp, b.catatan ?? null, aktor(p)]);
 
-  // Pemberitahuan ke penyetuju — pengaman kompensasi selama persetujuan
-  // belum berbasis sesi. Kegagalan kirim tidak boleh membatalkan top-up
-  // yang uangnya sudah diterima, tapi harus terlihat di log.
-  try {
-    await kirimEmail({
-      ke: b.disetujui_oleh,
-      judul: "Nama Anda dipakai sebagai penyetuju top-up tunai",
-      teks: `${aktor(p)} mencatat top-up tunai Rp ${b.nominal_rp.toLocaleString("id-ID")} `
-        + `untuk siswa id ${b.siswa_id} dengan Anda sebagai penyetuju.\n`
-        + `Transaksi #${hasil.transaksi_id}.\n\n`
-        + `Kalau Anda TIDAK menyetujui ini, segera laporkan ke Keuangan dan Admin IT.`,
-    });
-  } catch (e) {
-    console.error("[topup-tunai] gagal memberi tahu penyetuju:", e instanceof Error ? e.message : e);
+  // Beri tahu staf lain yang berwenang bahwa ada permintaan menunggu. Ini
+  // kenyamanan, bukan pengaman: kalau email gagal, permintaannya tetap
+  // terlihat di layar keuangan. Karena itu kegagalannya dicatat, bukan
+  // membatalkan permintaan yang sudah sah.
+  // Lewat after(), bukan promise yang dibiarkan menggantung: permintaannya
+  // sudah tersimpan dan sah, jadi SMTP yang lambat tidak boleh menahan
+  // jawaban — tapi di Vercel invocation bisa dibekukan begitu jawaban
+  // dikirim, dan promise lepas ikut mati bersamanya. after() menahan
+  // invocation-nya sampai selesai; di VPS perilakunya sama saja.
+  after(async () => {
+   try {
+    const penyetuju = await q<{ email: string }>(
+      `SELECT email FROM staf
+        WHERE aktif AND peran && ARRAY['keuangan','tu']::peran[] AND email <> $1`, [aktor(p)]);
+    await Promise.all(penyetuju.map((s) => kirimEmail({
+      ke: s.email,
+      judul: "Permintaan top-up tunai menunggu persetujuan",
+      teks: `${aktor(p)} meminta top-up tunai Rp ${b.nominal_rp.toLocaleString("id-ID")} `
+        + `untuk siswa id ${b.siswa_id} (permintaan #${permintaan_id}).\n\n`
+        + `Buka dashboard → Keuangan untuk menyetujui atau menolak dari akunmu sendiri. `
+        + `Jangan menyetujui sesuatu yang tidak kamu saksikan sendiri.`,
+    })));
+   } catch (e) {
+    console.error("[topup-tunai] gagal memberi tahu calon penyetuju:", e instanceof Error ? e.message : e);
+   }
+  });
+
+  return ok({ permintaan_id, status: "menunggu" });
+});
+
+export const PATCH = tangani(async (req) => {
+  const p = await wajibPeran(req, "tu", "keuangan");
+  const b = await bacaBody(req, v.obj({
+    permintaan_id: v.id(),
+    aksi: v.enum(["setujui", "tolak", "batal"] as const),
+    alasan: v.str({ max: 200 }).opsional(),
+  }));
+
+  if (b.aksi === "batal") {
+    return ok({ permintaan_id: await skalar<number>("topup_tunai_batal", [b.permintaan_id, aktor(p)]), status: "dibatalkan" });
   }
+  if (b.aksi === "tolak" && !b.alasan?.trim()) {
+    throw new HttpError(400, "VALIDASI", "alasan wajib saat menolak");
+  }
+
+  // `aktor(p)` — dari sesi, bukan dari badan permintaan. Ini satu-satunya
+  // baris yang membuat kontrol dua orang ini berarti.
+  const hasil = await fnSatu<{ permintaan_id: number; status: string; transaksi_id: number | null; saldo_rp: number }>(
+    "topup_tunai_putus", [b.permintaan_id, b.aksi === "setujui", aktor(p), b.alasan ?? null]);
   return ok(hasil);
 });

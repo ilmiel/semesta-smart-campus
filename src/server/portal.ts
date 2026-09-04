@@ -9,7 +9,12 @@ import { HttpError } from "./http";
 
 export async function ringkasanSiswa(siswaId: number) {
   const [siswa, tagihan, po, pinjaman, laundry, loker, limit] = await Promise.all([
-    satu(`SELECT id, nis, nama, kelas, jenjang, boarding, status, kartu, saldo_rp, pin_terkunci, pin_ada, limit_harian_rp FROM v_siswa WHERE id = $1`, [siswaId]),
+    // `pin_harus_ganti` ikut dikirim supaya portal bisa memberi tahu siswa
+    // bahwa PIN-nya masih PIN sementara dari TU — PIN yang diucapkan di meja
+    // dan berlaku penuh sampai diganti. Hash-nya tentu tidak ikut.
+    satu(`SELECT id, nis, nama, kelas, jenjang, boarding, status, kartu, saldo_rp, pin_terkunci, pin_ada, limit_harian_rp,
+                 (SELECT harus_ganti FROM pin_siswa WHERE siswa_id = $1) AS pin_harus_ganti
+            FROM v_siswa WHERE id = $1`, [siswaId]),
     q(`SELECT id, sumber, keterangan, nominal_rp, dibuat FROM tagihan WHERE siswa_id = $1 AND status = 'menunggu' ORDER BY id`, [siswaId]),
     q(`SELECT p.id, p.kode, p.tanggal, p.status, p.total_rp, p.dibuat,
               (SELECT string_agg(i.qty || '× ' || i.nama, ', ' ORDER BY i.id) FROM po_item i WHERE i.po_id = p.id) AS item

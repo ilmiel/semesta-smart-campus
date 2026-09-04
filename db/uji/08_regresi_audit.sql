@@ -325,3 +325,82 @@ SELECT uji_ok('015 admin IT terakhir masih aktif setelah penolakan',
 
 -- Kembalikan keadaan.
 SELECT staf_simpan('gm@semesta.sch.id', 'Andy (GM)', '{manajemen,admin_it,keuangan,tu}', TRUE, 'uji');
+
+-- ---------------------------------------------------------------------
+-- 016 (§2.5) — dua tanda tangan top-up tunai yang sungguhan
+--
+-- Yang diuji bukan "ada dua nama di baris audit", melainkan bahwa
+-- persetujuan TIDAK BISA dilakukan oleh peminta sendiri, tidak bisa oleh
+-- orang tanpa wewenang, dan tidak bisa dipakai lagi keesokan harinya.
+-- ---------------------------------------------------------------------
+SELECT saldo_siswa(:rs2) AS s2_awal \gset
+SELECT topup_tunai_minta(:rs2, 50000, 'uji dua tanda tangan', 'tu@semesta.sch.id') AS pm1 \gset
+
+SELECT uji_ok('016 permintaan belum menggerakkan uang sepeser pun',
+  saldo_siswa(:rs2) = :s2_awal);
+SELECT uji_ok('016 permintaan muncul di daftar menunggu',
+  EXISTS (SELECT 1 FROM v_topup_tunai_menunggu WHERE id = :pm1));
+
+SELECT uji_gagal('016 peminta tidak bisa menyetujui permintaannya sendiri',
+  $$SELECT * FROM topup_tunai_putus($$ || :pm1 || $$, TRUE, 'tu@semesta.sch.id')$$,
+  'DUA_TANDA_TANGAN');
+SELECT uji_ok('016 saldo tetap setelah percobaan menyetujui diri sendiri',
+  saldo_siswa(:rs2) = :s2_awal);
+
+SELECT staf_simpan('pustaka.uji@semesta.sch.id', 'Pustakawan Uji', '{pustakawan}', TRUE, 'uji');
+SELECT uji_gagal('016 staf tanpa peran keuangan/tu tidak bisa menyetujui',
+  $$SELECT * FROM topup_tunai_putus($$ || :pm1 || $$, TRUE, 'pustaka.uji@semesta.sch.id')$$,
+  'PERAN_TIDAK_CUKUP');
+
+SELECT * FROM topup_tunai_putus(:pm1, TRUE, 'tu2@semesta.sch.id') \gset p1_
+SELECT uji_sama('016 staf kedua berwenang bisa menyetujui', :'p1_status'::text, 'disetujui'::text);
+SELECT uji_ok('016 saldo bertambah tepat sebesar nominal',
+  saldo_siswa(:rs2) = :s2_awal + 50000);
+SELECT uji_gagal('016 permintaan yang sudah diputus tidak bisa diputus lagi',
+  $$SELECT * FROM topup_tunai_putus($$ || :pm1 || $$, TRUE, 'tu2@semesta.sch.id')$$,
+  'STATUS_TIDAK_SESUAI');
+SELECT uji_ok('016 audit mencatat peminta dan penyetuju sebagai dua orang berbeda',
+  EXISTS (SELECT 1 FROM audit_log
+           WHERE aksi = 'topup_tunai' AND objek = 'siswa:' || :rs2
+             AND aktor = 'tu@semesta.sch.id'
+             AND meta->>'disetujui_oleh' = 'tu2@semesta.sch.id'));
+
+-- Penolakan
+SELECT topup_tunai_minta(:rs2, 20000, NULL, 'tu@semesta.sch.id') AS pm2 \gset
+SELECT * FROM topup_tunai_putus(:pm2, FALSE, 'tu2@semesta.sch.id', 'uang tidak saya lihat') \gset p2_
+SELECT uji_sama('016 penolakan tercatat', :'p2_status'::text, 'ditolak'::text);
+SELECT uji_ok('016 penolakan tidak menambah saldo',
+  saldo_siswa(:rs2) = :s2_awal + 50000);
+
+-- Pembatalan hanya oleh peminta
+SELECT topup_tunai_minta(:rs2, 20000, NULL, 'tu@semesta.sch.id') AS pm3 \gset
+SELECT uji_gagal('016 orang lain tidak bisa membatalkan permintaan peminta',
+  $$SELECT topup_tunai_batal($$ || :pm3 || $$, 'tu2@semesta.sch.id')$$, 'BUKAN_PEMINTA');
+SELECT topup_tunai_batal(:pm3, 'tu@semesta.sch.id');
+SELECT uji_ok('016 peminta bisa membatalkan permintaannya sendiri',
+  (SELECT status = 'dibatalkan' FROM topup_tunai_permintaan WHERE id = :pm3));
+
+-- Kedaluwarsa: persetujuan tidak boleh bisa dipakai besok pagi.
+SELECT kebijakan_set('topup_tunai_kedaluwarsa_menit', '0'::jsonb, 'uji');
+SELECT topup_tunai_minta(:rs2, 20000, NULL, 'tu@semesta.sch.id') AS pm4 \gset
+SELECT uji_ok('016 permintaan kedaluwarsa tidak muncul di daftar menunggu',
+  NOT EXISTS (SELECT 1 FROM v_topup_tunai_menunggu WHERE id = :pm4));
+SELECT saldo_siswa(:rs2) AS s2_sebelum_exp \gset
+SELECT * FROM topup_tunai_putus(:pm4, TRUE, 'tu2@semesta.sch.id') \gset p4_
+SELECT uji_sama('016 permintaan kedaluwarsa tidak jadi disetujui', :'p4_status'::text, 'kedaluwarsa'::text);
+SELECT uji_ok('016 permintaan kedaluwarsa tidak menambah saldo',
+  saldo_siswa(:rs2) = :s2_sebelum_exp);
+-- Penandaan harus BERTAHAN. Kalau kedaluwarsa dilaporkan lewat exception,
+-- UPDATE-nya ikut dibatalkan dan barisnya muncul lagi besok.
+SELECT uji_ok('016 penandaan kedaluwarsa bertahan setelah fungsi selesai',
+  (SELECT status = 'kedaluwarsa' FROM topup_tunai_permintaan WHERE id = :pm4));
+SELECT kebijakan_set('topup_tunai_kedaluwarsa_menit', '30'::jsonb, 'uji');
+
+-- Plafon menghitung permintaan yang masih menunggu (pelajaran §2.3).
+SELECT kebijakan_set('plafon_saldo_rp', to_jsonb((saldo_siswa(:rs2) + 60000)::bigint), 'uji');
+SELECT topup_tunai_minta(:rs2, 50000, NULL, 'tu@semesta.sch.id') AS pm5 \gset
+SELECT uji_gagal('016 permintaan kedua ditolak karena yang pertama sudah memenuhi plafon',
+  $$SELECT topup_tunai_minta($$ || :rs2 || $$, 50000, NULL, 'tu@semesta.sch.id')$$,
+  'MELEBIHI_PLAFON');
+SELECT topup_tunai_batal(:pm5, 'tu@semesta.sch.id');
+SELECT kebijakan_set('plafon_saldo_rp', '1000000'::jsonb, 'uji');

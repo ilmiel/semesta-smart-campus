@@ -1,32 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useToast } from "@/components/Toast";
 import { TautanContoh } from "@/components/Mock";
+import PinBanner from "@/components/PinBanner";
 import { rp } from "@/lib/format";
 
 const HARGA_PO = { paket: 15000, susu: 6000 } as const;
 
 export default function PortalSiswa() {
   const toast = useToast();
-  const [sheetPin, setSheetPin] = useState(false);
-  const [pinLama, setPinLama] = useState("");
-  const [pinBaru, setPinBaru] = useState("");
-  const [pinUlang, setPinUlang] = useState("");
   const [hilangSiap, setHilangSiap] = useState(false);
   const [kartuDiblokir, setKartuDiblokir] = useState(false);
   const [qty, setQty] = useState({ paket: 1, susu: 0 });
   const [poAktif, setPoAktif] = useState<null | { isi: string; total: number }>(null);
 
   const totalPo = qty.paket * HARGA_PO.paket + qty.susu * HARGA_PO.susu;
-
-  const simpanPin = () => {
-    if (!/^\d{6}$/.test(pinBaru)) return toast("PIN baru harus tepat 6 angka");
-    if (pinBaru !== pinUlang) return toast("PIN baru dan ulangan tidak sama");
-    if (!pinLama) return toast("Isi PIN lama dulu");
-    setSheetPin(false); setPinLama(""); setPinBaru(""); setPinUlang("");
-    toast("PIN diganti ✓ (contoh — di aplikasi asli diverifikasi server)");
-  };
 
   const laporHilang = () => {
     if (!hilangSiap) {
@@ -50,12 +40,22 @@ export default function PortalSiswa() {
       </div>
 
       <div className="p-wrap">
+        {/* Satu-satunya bagian halaman ini yang sungguhan. Sisanya masih
+            contoh (Fase 1.3) dan berlabel demikian. */}
+        <PinBanner />
+
+        {/* Data di bawah ini masih CONTOH (Fase 1.3), ditandai terang-terangan:
+            halaman ini kini di balik penjaga login, jadi yang membacanya adalah
+            siswa sungguhan — dan angka saldo karangan tanpa label akan
+            dipercaya. */}
+        <div className="demo">Saldo, riwayat, dan pesanan di halaman ini masih data contoh — belum tersambung ke datamu yang sebenarnya.</div>
+
         <div className="saldo-card">
           <div className="l">Saldo kamu</div>
           <div className="v">Rp 200.000</div>
           <div className="u">Limit harian Rp 50.000 · sisa hari ini Rp 50.000</div>
           <div className="acts">
-            <button type="button" className="btn" onClick={() => setSheetPin(v => !v)}>Ganti PIN</button>
+            <Link href="/siswa/pin" className="btn">Ganti PIN</Link>
             <button type="button" className="btn danger" disabled={kartuDiblokir} onClick={laporHilang}>
               {kartuDiblokir ? "Kartu diblokir ✓" : hilangSiap ? "Yakin? Blokir kartu sekarang" : "Kartuku hilang"}
             </button>
@@ -68,31 +68,6 @@ export default function PortalSiswa() {
               ⚠ Kartu kamu <b>diblokir sementara</b> (lapor hilang). Kalau ketemu, bawa ke TU untuk
               diaktifkan lagi. Kalau tidak, TU akan menerbitkan kartu baru — saldo kamu aman.
             </div>
-          </div>
-        ) : null}
-
-        {sheetPin ? (
-          <div className="pcard">
-            <h2>Ganti PIN</h2>
-            <div className="field">
-              <label className="f" htmlFor="pin-lama">PIN lama</label>
-              <input type="password" id="pin-lama" inputMode="numeric" maxLength={6} placeholder="••••••"
-                style={{ width: "100%" }} value={pinLama} onChange={e => setPinLama(e.target.value)} />
-            </div>
-            <div className="field">
-              <label className="f" htmlFor="pin-baru">PIN baru (6 angka)</label>
-              <input type="password" id="pin-baru" inputMode="numeric" maxLength={6} placeholder="••••••"
-                style={{ width: "100%" }} value={pinBaru} onChange={e => setPinBaru(e.target.value)} />
-            </div>
-            <div className="field">
-              <label className="f" htmlFor="pin-ulang">Ulangi PIN baru</label>
-              <input type="password" id="pin-ulang" inputMode="numeric" maxLength={6} placeholder="••••••"
-                style={{ width: "100%" }} value={pinUlang} onChange={e => setPinUlang(e.target.value)} />
-            </div>
-            <button type="button" className="btn pri blok" onClick={simpanPin}>Simpan PIN baru</button>
-            <p className="p-note" style={{ marginTop: 10 }}>
-              Jangan pakai tanggal lahir. PIN diminta untuk belanja di atas Rp 25.000. Salah 5× = terkunci 30 menit.
-            </p>
           </div>
         ) : null}
 
