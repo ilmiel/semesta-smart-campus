@@ -42,10 +42,12 @@ interface Staf {
 const KOSONG = { email: "", nama: "", peran: [] as string[], aktif: true };
 
 export default function Bagian() {
-  const { data, galat, sedang, muatUlang } = useMuat<{ staf: Staf[] }>("/api/admin/staf");
+  const { data, galat, sedang, muatUlang } = useMuat<{ staf: Staf[]; emailLogin?: string }>("/api/admin/staf");
   const staf = data?.staf ?? [];
+  const emailLogin = data?.emailLogin;
   const [form, setForm] = useState<typeof KOSONG | null>(null);
   const [ubahEmail, setUbahEmail] = useState<string | null>(null);
+  const [hapusStaf, setHapusStaf] = useState<Staf | null>(null);
   const [pesan, setPesan] = useState("");
   const [gagal, setGagal] = useState(false);
   const [sibuk, setSibuk] = useState(false);
@@ -85,6 +87,24 @@ export default function Bagian() {
     if (!r.ok) { setGagal(true); setPesan(r.pesan ?? "Gagal menyimpan"); return; }
     setForm(null); setUbahEmail(null);
     setPesan(`Tersimpan: ${form.nama}.`);
+    await muatUlang();
+  }
+
+  async function konfirmasiHapus() {
+    if (!hapusStaf) return;
+    setSibuk(true); setPesan(""); setGagal(false);
+    const r = await api("/api/admin/staf", {
+      metode: "DELETE", body: { email: hapusStaf.email },
+    });
+    setSibuk(false);
+    if (!r.ok) {
+      setGagal(true);
+      setPesan(r.pesan ?? "Gagal menghapus akun staf");
+      return;
+    }
+    const nama = hapusStaf.nama;
+    setHapusStaf(null);
+    setPesan(`Akun staf ${nama} berhasil dihapus.`);
     await muatUlang();
   }
 
@@ -170,6 +190,59 @@ export default function Bagian() {
         </Modal>
       ) : null}
 
+      {hapusStaf ? (
+        <Modal
+          judul="Hapus Akun Staf"
+          sub={hapusStaf.email}
+          onTutup={() => { setHapusStaf(null); setPesan(""); }}
+        >
+          <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--ink-2)" }}>
+            <p style={{ margin: "0 0 12px" }}>
+              Apakah Anda yakin ingin menghapus akun staf <b>{hapusStaf.nama}</b> (<span className="mono">{hapusStaf.email}</span>)?
+            </p>
+            <div style={{ background: "var(--warn-soft)", color: "var(--warn-text)", padding: "10px 14px", border: "1px solid var(--rule)", borderRadius: 8, fontSize: 12.5, marginBottom: 14 }}>
+              ⚠️ <b>Perhatian:</b> Akun ini akan dihapus permanen dari daftar staf dan seluruh hak akses perannya akan langsung dicabut seketika. Riwayat transaksi dan jejak audit masa lalu tetap aman tersimpan mencatat email staf ini.
+            </div>
+            {hapusStaf.email.toLowerCase() === emailLogin?.toLowerCase() ? (
+              <div className="a-err" style={{ marginBottom: 12 }}>
+                Anda tidak dapat menghapus akun Anda sendiri yang sedang aktif login.
+              </div>
+            ) : null}
+            {hapusStaf.aktif && hapusStaf.peran.includes("admin_it") && adminAktif <= 1 ? (
+              <div className="a-err" style={{ marginBottom: 12 }}>
+                Ini adalah satu-satunya admin IT aktif. Angkat admin IT lain terlebih dahulu sebelum menghapus akun ini agar sistem tidak terkunci.
+              </div>
+            ) : null}
+          </div>
+
+          {pesan ? <div className={gagal ? "a-err" : "a-ok"} style={{ marginTop: 10 }}>{pesan}</div> : null}
+
+          <div className="a-aksi" style={{ marginTop: 16 }}>
+            <button
+              type="button"
+              className="btn danger"
+              style={{ background: "var(--crit)", borderColor: "var(--crit)", color: "#fff" }}
+              disabled={
+                sibuk ||
+                hapusStaf.email.toLowerCase() === emailLogin?.toLowerCase() ||
+                (hapusStaf.aktif && hapusStaf.peran.includes("admin_it") && adminAktif <= 1)
+              }
+              onClick={() => void konfirmasiHapus()}
+            >
+              {sibuk ? "Menghapus…" : "Ya, Hapus Staf"}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={sibuk}
+              onClick={() => { setHapusStaf(null); setPesan(""); }}
+            >
+              Batal
+            </button>
+          </div>
+        </Modal>
+      ) : null}
+
       <Panel judul="Akun staf" sub={sedang ? "memuat…" : `${staf.filter(s => s.aktif).length} aktif · ${adminAktif} admin IT`}
         aksi={adminAktif <= 1 ? <Badge warna="warn">hanya 1 admin IT</Badge> : null}>
         <div className="tw">
@@ -200,6 +273,19 @@ export default function Bagian() {
                         onClick={() => void ubahStatus(s)}>
                         {s.aktif ? "Nonaktifkan" : "Aktifkan"}
                       </button>
+                      <button
+                        type="button"
+                        className="btn sm danger"
+                        disabled={sibuk || s.email.toLowerCase() === emailLogin?.toLowerCase()}
+                        title={s.email.toLowerCase() === emailLogin?.toLowerCase() ? "Tidak dapat menghapus akun Anda sendiri" : undefined}
+                        onClick={() => {
+                          setPesan("");
+                          setGagal(false);
+                          setHapusStaf(s);
+                        }}
+                      >
+                        Hapus
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -211,10 +297,10 @@ export default function Bagian() {
           </table>
         </div>
         <CatatanKaki>
-          Menonaktifkan staf tidak menghapus barisnya: jejak audit lama menunjuk ke email ini,
-          dan menghapusnya membuat riwayat persetujuan tidak bisa dibaca. Server menolak
-          mencabut peran admin IT terakhir yang masih aktif — kalau tidak, tidak ada lagi yang
-          bisa memperbaikinya selain lewat SQL.
+          Akun staf dapat dinonaktifkan sementara atau dihapus permanen. Menghapus staf akan
+          mencabut seluruh perannya secara seketika, namun riwayat transaksi dan audit masa lalu
+          tetap aman tersimpan mencatat nama email staf terkait. Server secara ketat menolak
+          menghapus akun sendiri atau mencabut admin IT aktif terakhir.
         </CatatanKaki>
       </Panel>
     </>

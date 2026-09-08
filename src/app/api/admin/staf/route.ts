@@ -11,15 +11,18 @@
  * baru berlaku. Penjaga admin IT terakhir tetap ditegakkan di SQL.
  */
 import { q, skalar } from "@/server/db";
-import { ok, tangani } from "@/server/http";
+import { HttpError, ok, tangani } from "@/server/http";
 import { aktor, wajibPeran } from "@/server/sesi";
-import { bacaBody, v } from "@/server/validasi";
+import { bacaBody, bacaQuery, v } from "@/server/validasi";
 
 const PERAN = ["admin_it", "keuangan", "tu", "kasir", "laundry", "asrama", "pustakawan", "kesiswaan", "wali_kelas", "manajemen"] as const;
 
 export const GET = tangani(async (req) => {
-  await wajibPeran(req, "admin_it", "manajemen");
-  return ok({ staf: await q(`SELECT id, email, nama, peran::text[] AS peran, aktif, dibuat, diubah FROM staf ORDER BY nama`) });
+  const p = await wajibPeran(req, "admin_it", "manajemen");
+  return ok({
+    emailLogin: p.email,
+    staf: await q(`SELECT id, email, nama, peran::text[] AS peran, aktif, dibuat, diubah FROM staf ORDER BY nama`),
+  });
 });
 
 export const POST = tangani(async (req) => {
@@ -41,4 +44,21 @@ export const PATCH = tangani(async (req) => {
   const b = await bacaBody(req, v.obj({ email: v.str({ min: 3, max: 120 }), aktif: v.bool() }));
   const id = await skalar<number>("staf_status", [b.email, b.aktif, aktor(p)]);
   return ok({ id, aktif: b.aktif });
+});
+
+export const DELETE = tangani(async (req) => {
+  const p = await wajibPeran(req, "admin_it");
+  let email: string;
+  try {
+    const b = await bacaBody(req, v.obj({ email: v.str({ min: 3, max: 120 }) }));
+    email = b.email;
+  } catch {
+    const q = bacaQuery(req, v.obj({ email: v.str({ min: 3, max: 120 }) }));
+    email = q.email;
+  }
+  if (email.trim().toLowerCase() === p.email.trim().toLowerCase()) {
+    throw new HttpError(400, "AKUN_SENDIRI", "Anda tidak dapat menghapus akun Anda sendiri.");
+  }
+  const id = await skalar<number>("staf_hapus", [email, aktor(p)]);
+  return ok({ id, email, terhapus: true });
 });
