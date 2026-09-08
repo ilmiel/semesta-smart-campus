@@ -2,40 +2,51 @@
  * POST / GET /api/admin/akses/batal
  * Mengakhiri mode impersonasi pengecekan dan menghapus cookienya.
  */
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { skalar } from "@/server/db";
+import { catatAudit } from "@/server/audit";
 import { ok, tangani } from "@/server/http";
 import { aktor, COOKIE_IMPERSONASI, principalDariRequest } from "@/server/sesi";
 
 export const GET = async (req: Request) => {
   const p = await principalDariRequest(req);
   if (p?.impersonasi) {
-    await skalar("audit_catat", [
+    await catatAudit(
       aktor(p),
+      p.peran.join(","),
       "admin_impersonasi_selesai",
-      `Selesai pengecekan ${p.impersonasi.tipe}: ${p.impersonasi.targetNama}`,
-      p.ip,
-    ]).catch(() => {});
+      `${p.impersonasi.tipe}:${p.impersonasi.targetId}`,
+      { target: p.impersonasi.targetNama },
+      p.ip
+    );
   }
+
+  const cookieStore = await cookies();
+  cookieStore.delete(COOKIE_IMPERSONASI);
 
   const url = new URL("/admin/akses", req.url);
   const res = NextResponse.redirect(url);
-  res.cookies.set(COOKIE_IMPERSONASI, "", { path: "/", maxAge: 0 });
+  res.cookies.delete(COOKIE_IMPERSONASI);
   return res;
 };
 
 export const POST = tangani(async (req) => {
   const p = await principalDariRequest(req);
   if (p?.impersonasi) {
-    await skalar("audit_catat", [
+    await catatAudit(
       aktor(p),
+      p.peran.join(","),
       "admin_impersonasi_selesai",
-      `Selesai pengecekan ${p.impersonasi.tipe}: ${p.impersonasi.targetNama}`,
-      p.ip,
-    ]).catch(() => {});
+      `${p.impersonasi.tipe}:${p.impersonasi.targetId}`,
+      { target: p.impersonasi.targetNama },
+      p.ip
+    );
   }
 
-  const res = ok({ ok: true, redirect: "/admin/akses" });
+  const cookieStore = await cookies();
+  cookieStore.delete(COOKIE_IMPERSONASI);
+
+  const res = ok({ redirect: "/admin/akses" });
   res.headers.append("set-cookie", `${COOKIE_IMPERSONASI}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
   return res;
 });

@@ -16,10 +16,10 @@ export const GET = tangani(async (req) => {
   const p = await principalDariRequest(req);
   if (!p) return ok({ masuk: false, tujuan: null });
 
-  // Urutan sengaja: staf dulu (guru yang juga orang tua tetap masuk dashboard),
-  // lalu siswa, lalu wali.
+  // Jika dalam mode impersonasi pengecekan, arahkan langsung ke portal sasaran
   const tujuan =
-    p.peran.length > 0 ? "/admin"
+    p.impersonasi ? (p.impersonasi.tipe === "siswa" ? "/siswa" : "/ortu")
+    : p.peran.length > 0 ? "/admin"
     : p.siswa ? "/siswa"
     : p.wali.length > 0 ? "/ortu"
     : null;
@@ -27,7 +27,7 @@ export const GET = tangani(async (req) => {
   return ok({
     masuk: true,
     email: p.email,
-    nama: p.nama,
+    nama: p.impersonasi ? p.impersonasi.targetNama : p.nama,
     peran: p.peran,
     siswa: p.siswa ? { nis: p.siswa.nis, nama: p.siswa.nama } : null,
     jumlah_anak: p.wali.length,

@@ -143,7 +143,8 @@ export default function BagianAkses() {
         return;
       }
       // Pindah ke portal sasaran
-      window.location.href = j.redirect;
+      const targetUrl = j?.data?.redirect || j?.redirect || (tipe === "siswa" ? "/siswa" : "/ortu");
+      window.location.href = targetUrl;
     } catch {
       setGagal(true);
       setPesan("Gagal menghubungi server");

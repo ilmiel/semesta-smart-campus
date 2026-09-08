@@ -3,7 +3,8 @@
  *   { kode: string }
  * Menghubungkan browser admin dengan terminal: membuat kunci baru dan menyimpannya di DB.
  */
-import { q, satu, skalar } from "@/server/db";
+import { catatAudit } from "@/server/audit";
+import { q, satu } from "@/server/db";
 import { buatKunciDevice } from "@/server/device";
 import { HttpError, ok, tangani } from "@/server/http";
 import { aktor, wajibPeran } from "@/server/sesi";
@@ -22,12 +23,14 @@ export const POST = tangani(async (req) => {
   const { kunci, hash } = buatKunciDevice();
   await q(`UPDATE device SET api_key_hash = $1, aktif = TRUE WHERE id = $2`, [hash, d.id]);
 
-  await skalar("audit_catat", [
+  await catatAudit(
     aktor(p),
+    p.peran.join(","),
     "admin_terminal_hubungkan",
-    `Auto-login kunci terminal ${d.kode} (${d.layanan})`,
-    p.ip,
-  ]);
+    `device:${d.kode}`,
+    { layanan: d.layanan, nama: d.nama },
+    p.ip
+  );
 
   return ok({
     kode: d.kode,

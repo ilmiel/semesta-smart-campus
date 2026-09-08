@@ -3,7 +3,9 @@
  *   { tipe: "siswa" | "ortu", id: number }
  * Mengaktifkan mode impersonasi/pengecekan untuk admin_it / tu.
  */
-import { satu, skalar } from "@/server/db";
+import { cookies } from "next/headers";
+import { catatAudit } from "@/server/audit";
+import { satu } from "@/server/db";
 import { HttpError, ok, tangani } from "@/server/http";
 import { aktor, buatTokenImpersonasi, COOKIE_IMPERSONASI, wajibPeran } from "@/server/sesi";
 import { bacaBody, v } from "@/server/validasi";
@@ -33,24 +35,34 @@ export const POST = tangani(async (req) => {
   const token = buatTokenImpersonasi({ tipe: b.tipe, id: b.id, adminEmail: p.email });
 
   // Catat jejak audit aktivasi mode pengecekan
-  await skalar("audit_catat", [
+  await catatAudit(
     aktor(p),
+    p.peran.join(","),
     "admin_impersonasi_mulai",
-    `Mode pengecekan ${b.tipe}: ${targetNama}`,
-    p.ip,
-  ]);
+    `${b.tipe}:${b.id}`,
+    { target: targetNama },
+    p.ip
+  );
+
+  const cookieStore = await cookies();
+  cookieStore.set(COOKIE_IMPERSONASI, token, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 7200,
+  });
 
   const targetUrl = b.tipe === "siswa" ? "/siswa" : "/ortu";
   const res = ok({
-    ok: true,
     redirect: targetUrl,
     pesan: `Mode pengecekan aktif sebagai ${targetNama}`,
   });
 
   res.headers.append(
     "set-cookie",
-    `${COOKIE_IMPERSONASI}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=7200`
+    `${COOKIE_IMPERSONASI}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=7200`
   );
 
   return res;
 });
+

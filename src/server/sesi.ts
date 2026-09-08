@@ -117,7 +117,7 @@ export async function principalDariHeaders(h: Headers): Promise<Principal | null
       if (targetSiswa) {
         return {
           email,
-          nama: sesi.user.name || email,
+          nama: targetSiswa.nama,
           peran: normalPeran,
           siswa: { id: targetSiswa.id, nis: targetSiswa.nis, nama: targetSiswa.nama },
           wali: [],
@@ -132,20 +132,25 @@ export async function principalDariHeaders(h: Headers): Promise<Principal | null
         };
       }
     } else if (imp.tipe === "ortu") {
-      const targetWali = await satu<{ id: number; nama: string; email: string | null }>(
-        `SELECT id, nama, email FROM wali WHERE id = $1`, [imp.id]
+      const targetWali = await satu<{ id: number; nama: string; email: string | null; siswa_id: number }>(
+        `SELECT id, nama, email, siswa_id FROM wali WHERE id = $1`, [imp.id]
       );
       if (targetWali) {
         const anakWali = await q<{ wali_id: number; siswa_id: number; utama: boolean }>(
           `SELECT w.id AS wali_id, w.siswa_id, w.utama FROM wali w JOIN siswa s ON s.id = w.siswa_id
-           WHERE w.id = $1 AND s.status <> 'keluar'`, [targetWali.id]
+           WHERE (w.id = $1 OR ($2 <> '' AND lower(w.email) = lower($2))) AND s.status <> 'keluar'`,
+          [targetWali.id, (targetWali.email ?? "").trim()]
         );
+        const waliList = anakWali.length > 0
+          ? anakWali.map((w) => ({ waliId: w.wali_id, siswaId: w.siswa_id, utama: w.utama }))
+          : [{ waliId: targetWali.id, siswaId: targetWali.siswa_id, utama: true }];
+
         return {
           email,
-          nama: sesi.user.name || email,
+          nama: targetWali.nama,
           peran: normalPeran,
           siswa: null,
-          wali: anakWali.map((w) => ({ waliId: w.wali_id, siswaId: w.siswa_id, utama: w.utama })),
+          wali: waliList,
           ip: ipDariHeaders(h),
           impersonasi: {
             tipe: "ortu",
