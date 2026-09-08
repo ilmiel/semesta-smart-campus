@@ -1,5 +1,5 @@
 /** POST /api/ortu/anak/[siswaId]/topup — membuat permintaan top-up (transfer manual atau gateway) */
-import { skalar } from "@/server/db";
+import { satu, skalar } from "@/server/db";
 import { HttpError, ok, tangani } from "@/server/http";
 import { wajibWaliDari } from "@/server/sesi";
 import { mulaiTopup } from "@/server/topup";
@@ -18,9 +18,10 @@ export const POST = tangani<{ siswaId: string }>(async (req, { params }) => {
     })
   );
 
-  const metodeAktif =
-    (await skalar<string>(`SELECT nilai #>> '{}' FROM kebijakan WHERE kunci = 'topup_metode'`)) ||
-    "verifikasi_admin";
+  const rowMetode = await satu<{ nilai: string }>(
+    "SELECT nilai #>> '{}' AS nilai FROM kebijakan WHERE kunci = 'topup_metode'"
+  );
+  const metodeAktif = rowMetode?.nilai || "verifikasi_admin";
 
   const metodePilihan = b.metode || metodeAktif;
 

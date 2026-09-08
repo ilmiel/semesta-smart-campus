@@ -26,9 +26,11 @@ export async function ambilMayarApiKey(): Promise<string> {
     return process.env.MAYAR_API_KEY.trim();
   }
   try {
-    const { skalar } = await import("@/server/db");
-    const k = await skalar<string>(`SELECT nilai #>> '{}' FROM kebijakan WHERE kunci = 'gateway_api_key'`);
-    return k?.trim() || "";
+    const { satu } = await import("@/server/db");
+    const k = await satu<{ nilai: string }>(
+      "SELECT nilai #>> '{}' AS nilai FROM kebijakan WHERE kunci = 'gateway_api_key'"
+    );
+    return k?.nilai?.trim() || "";
   } catch {
     return "";
   }
@@ -39,9 +41,11 @@ export async function ambilMayarWebhookToken(): Promise<string> {
     return process.env.MAYAR_WEBHOOK_TOKEN.trim();
   }
   try {
-    const { skalar } = await import("@/server/db");
-    const k = await skalar<string>(`SELECT nilai #>> '{}' FROM kebijakan WHERE kunci = 'gateway_webhook_token'`);
-    return k?.trim() || "";
+    const { satu } = await import("@/server/db");
+    const k = await satu<{ nilai: string }>(
+      "SELECT nilai #>> '{}' AS nilai FROM kebijakan WHERE kunci = 'gateway_webhook_token'"
+    );
+    return k?.nilai?.trim() || "";
   } catch {
     return "";
   }
