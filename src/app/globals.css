@@ -10,6 +10,7 @@
   --bg:#f5f7f3; --surface:#ffffff; --ink:#171d19; --ink-2:#56615a; --ink-3:#898781;
   --rule:#dfe3dc; --grid:#e6e9e3; --accent:#146c4f; --accent-ink:#0f553e; --accent-soft:#e3eee7;
   --side-bg:#10231b; --side-ink:#cfe0d7; --side-ink-2:#7e968b; --side-active:#1c3a2e;
+  --brand-pri: var(--accent);
   --series-1:#2a78d6;
   --good:#0ca30c; --good-text:#006300; --warning:#fab219; --warn-text:#6d4b0b;
   --serious:#ec835a; --critical:#d03b3b; --crit-text:#a92f2f;
@@ -608,5 +609,71 @@ input[type=time], input[type=date], input[type=month], textarea {
   color: var(--accent-ink);
   border-bottom-color: var(--accent);
 }
+
+/* ===== Panel Tema Warna ===== */
+.tema-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+  margin-bottom: 18px;
+}
+
+.tema-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1.5px solid var(--rule);
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.tema-card:hover {
+  border-color: var(--ink-3);
+  transform: translateY(-1px);
+}
+
+.tema-card.aktif {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+  background: var(--surface);
+}
+
+.tema-swatches {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.tema-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  flex: none;
+}
+
+.tema-nama {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tema-desk {
+  font-size: 11.5px;
+  color: var(--ink-2);
+  line-height: 1.35;
+}
+
 
 

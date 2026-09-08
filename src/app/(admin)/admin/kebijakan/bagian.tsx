@@ -4,6 +4,13 @@ import { useState } from "react";
 import { CatatanKaki, Panel } from "@/components/ui";
 import { api, useMuat, waktuSingkat } from "@/lib/api";
 import { rp } from "@/lib/format";
+import {
+  PRESET_TEMA,
+  TEMA_DEFAULT,
+  buatTemaKustom,
+  terapkanTemaKeDom,
+  type TemaWarna,
+} from "@/lib/tema";
 
 /**
  * Pengaturan kebijakan global.
@@ -77,7 +84,7 @@ export default function Bagian() {
   const { data, galat, sedang, muatUlang } = useMuat<{ kebijakan: Kebijakan[] }>("/api/admin/kebijakan");
   const semua = data?.kebijakan ?? [];
   const peta = new Map(semua.map(k => [k.kunci, k]));
-  const dipakai = new Set(KELOMPOK.flatMap(g => g.kunci).concat("limit_offline_rp", KUNCI_TOPUP));
+  const dipakai = new Set(KELOMPOK.flatMap(g => g.kunci).concat("limit_offline_rp", KUNCI_TOPUP, "tema_warna"));
   const sisa = semua.filter(k => !dipakai.has(k.kunci));
 
   return (
@@ -86,8 +93,8 @@ export default function Bagian() {
         <div>
           <h1>Kebijakan</h1>
           <div className="sub">
-            Angka yang mengatur uang, PIN, dan batas layanan. Berlaku seketika untuk semua
-            terminal — terminal membacanya ulang setiap sinkron.
+            Angka yang mengatur uang, PIN, batas layanan, dan tema tampilan sistem. Berlaku
+            seketika untuk semua terminal dan portal.
           </div>
         </div>
         <div className="right">
@@ -98,6 +105,7 @@ export default function Bagian() {
       {galat ? <div className="demo" style={{ borderColor: "var(--crit)" }}>{galat}</div> : null}
       {sedang && semua.length === 0 ? <p className="p-note">Memuat kebijakan…</p> : null}
 
+      <PanelTemaWarna peta={peta} selesai={muatUlang} />
       <PanelMetodeTopup peta={peta} selesai={muatUlang} />
 
       {KELOMPOK.map(g => {
@@ -464,3 +472,334 @@ function PanelMetodeTopup({ peta, selesai }: { peta: Map<string, Kebijakan>; sel
     </Panel>
   );
 }
+
+/**
+ * Panel Konfigurasi Tema Warna Sistem Global
+ * Admin dapat memilih dari 7 preset profesional atau memilih warna HEX kustom.
+ */
+function PanelTemaWarna({ peta, selesai }: { peta: Map<string, Kebijakan>; selesai: () => Promise<void> }) {
+  const temaRaw = peta.get("tema_warna")?.nilai;
+  const temaAktifDb: TemaWarna =
+    typeof temaRaw === "object" && temaRaw !== null && (temaRaw as TemaWarna).accent
+      ? (temaRaw as TemaWarna)
+      : TEMA_DEFAULT;
+
+  const [pilihan, setPilihan] = useState<TemaWarna>(temaAktifDb);
+  const [isCustom, setIsCustom] = useState(temaAktifDb.id === "custom");
+  const [customAccent, setCustomAccent] = useState(temaAktifDb.accent || "#0284c7");
+  const [customSideBg, setCustomSideBg] = useState(temaAktifDb.side_bg || "#0c1e33");
+  const [sibuk, setSibuk] = useState(false);
+  const [pesan, setPesan] = useState("");
+  const [gagal, setGagal] = useState(false);
+
+  const temaIdTersimpan = temaAktifDb.id;
+  const adaPerubahan =
+    isCustom ? true : pilihan.id !== temaIdTersimpan;
+
+  function pilihPreset(preset: TemaWarna) {
+    setIsCustom(false);
+    setPilihan(preset);
+    setPesan("");
+    terapkanTemaKeDom(preset);
+  }
+
+  function ubahWarnaKustom(accent: string, sideBg?: string) {
+    setIsCustom(true);
+    setCustomAccent(accent);
+    if (sideBg !== undefined) setCustomSideBg(sideBg);
+    const baru = buatTemaKustom(accent, sideBg || customSideBg);
+    setPilihan(baru);
+    setPesan("");
+    terapkanTemaKeDom(baru);
+  }
+
+  async function simpanTema() {
+    setSibuk(true);
+    setPesan("");
+    setGagal(false);
+
+    const r = await api("/api/admin/kebijakan", {
+      metode: "PUT",
+      body: {
+        kunci: "tema_warna",
+        nilai: pilihan,
+      },
+    });
+
+    setSibuk(false);
+    if (!r.ok) {
+      setGagal(true);
+      setPesan(r.pesan ?? "Gagal menyimpan tema");
+      return;
+    }
+
+    terapkanTemaKeDom(pilihan);
+    setPesan(`Tema warna "${pilihan.nama}" berhasil disimpan dan diterapkan ke seluruh sistem!`);
+    await selesai();
+  }
+
+  function batalkanPratinjau() {
+    setPilihan(temaAktifDb);
+    setIsCustom(temaAktifDb.id === "custom");
+    setCustomAccent(temaAktifDb.accent);
+    setCustomSideBg(temaAktifDb.side_bg);
+    terapkanTemaKeDom(temaAktifDb);
+    setPesan("");
+  }
+
+  return (
+    <Panel
+      judul="Tema & Tampilan Warna Sistem"
+      sub="Atur warna tema untuk seluruh antarmuka: Dashboard Admin, Portal Orang Tua, Portal Siswa, Login, dan Terminal Layanan"
+    >
+      <div style={{ padding: "4px 0 12px" }}>
+        {pesan ? (
+          <div className={gagal ? "a-err" : "a-ok"} style={{ marginBottom: 16 }}>
+            {pesan}
+          </div>
+        ) : null}
+
+        {/* Grid Preset Tema */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>Pilihan Preset Tema</span>
+          <span className="p-note">Klik untuk pratinjau langsung di browser</span>
+        </div>
+
+        <div className="tema-grid">
+          {PRESET_TEMA.map((preset) => {
+            const aktif = !isCustom && pilihan.id === preset.id;
+            const tersimpan = temaIdTersimpan === preset.id;
+
+            return (
+              <div
+                key={preset.id}
+                className={`tema-card ${aktif ? "aktif" : ""}`}
+                onClick={() => pilihPreset(preset)}
+              >
+                <div className="tema-swatches">
+                  <div className="tema-dot" style={{ background: preset.accent }} title="Warna Utama (Aksen/Tombol)" />
+                  <div className="tema-dot" style={{ background: preset.side_bg }} title="Warna Sidebar / Header Portal" />
+                  <div
+                    className="tema-dot"
+                    style={{ background: preset.accent_soft, border: `1px solid ${preset.accent}` }}
+                    title="Warna Badge Lembut"
+                  />
+                  {tersimpan ? (
+                    <span className="badge ok" style={{ marginLeft: "auto", fontSize: 10 }}>
+                      Aktif di Sistem
+                    </span>
+                  ) : aktif ? (
+                    <span className="badge info" style={{ marginLeft: "auto", fontSize: 10 }}>
+                      Dipilih
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="tema-nama">{preset.nama}</div>
+                <div className="tema-desk">{preset.deskripsi}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Mode Kustom Bebas */}
+        <div
+          style={{
+            background: "var(--surface-sunken, #f8fafc)",
+            border: isCustom ? "2px solid var(--accent)" : "1px solid var(--border, #e2e8f0)",
+            borderRadius: 12,
+            padding: 16,
+            marginBottom: 16,
+            transition: "border-color 0.15s ease",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 20 }}>🎨</span>
+              <div>
+                <h4 style={{ margin: 0, fontSize: 14.5, fontWeight: 700 }}>Mode Warna Kustom Bebas</h4>
+                <p className="p-note" style={{ margin: 0, fontSize: 12 }}>
+                  Tentukan warna HEX utama sesuai identitas sekolah. Sistem otomatis mengalkulasi warna turunan harmonis.
+                </p>
+              </div>
+            </div>
+            {isCustom ? (
+              <span className="badge info" style={{ fontSize: 11 }}>
+                Mode Kustom Aktif
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="btn sm"
+                onClick={() => ubahWarnaKustom(customAccent, customSideBg)}
+              >
+                Gunakan Warna Kustom
+              </button>
+            )}
+          </div>
+
+          {isCustom ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 12 }}>
+              <div>
+                <label className="f" style={{ display: "block", marginBottom: 6, fontSize: 12.5, fontWeight: 600 }}>
+                  Warna Aksen Utama (Tombol & Highlight)
+                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    type="color"
+                    value={customAccent}
+                    style={{ width: 44, height: 38, padding: 2, cursor: "pointer", borderRadius: 8, border: "1px solid var(--rule)" }}
+                    onChange={(e) => ubahWarnaKustom(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    value={customAccent}
+                    maxLength={7}
+                    style={{ fontFamily: "monospace", width: 110 }}
+                    onChange={(e) => ubahWarnaKustom(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="f" style={{ display: "block", marginBottom: 6, fontSize: 12.5, fontWeight: 600 }}>
+                  Warna Sidebar / Header Portal (Gelap)
+                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    type="color"
+                    value={customSideBg}
+                    style={{ width: 44, height: 38, padding: 2, cursor: "pointer", borderRadius: 8, border: "1px solid var(--rule)" }}
+                    onChange={(e) => ubahWarnaKustom(customAccent, e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    value={customSideBg}
+                    maxLength={7}
+                    style={{ fontFamily: "monospace", width: 110 }}
+                    onChange={(e) => ubahWarnaKustom(customAccent, e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Kotak Pratinjau Langsung (Live Preview) */}
+        <div
+          style={{
+            border: "1px solid var(--rule)",
+            borderRadius: 12,
+            padding: 16,
+            background: "var(--surface)",
+            marginBottom: 16,
+          }}
+        >
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink-2)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 }}>
+            Pratinjau Komponen Antarmuka ({pilihan.nama})
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+            {/* Pratinjau Mini Top Bar / Sidebar */}
+            <div
+              style={{
+                background: pilihan.side_bg,
+                color: pilihan.side_ink,
+                padding: "12px 14px",
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  background: pilihan.accent,
+                  color: "#fff",
+                  display: "grid",
+                  placeItems: "center",
+                  fontWeight: 700,
+                  fontSize: 13,
+                }}
+              >
+                S
+              </div>
+              <div>
+                <b style={{ fontSize: 13, display: "block" }}>Smart Campus</b>
+                <small style={{ color: pilihan.side_ink_2, fontSize: 11 }}>Portal & Sidebar Top</small>
+              </div>
+              <span
+                style={{
+                  marginLeft: "auto",
+                  background: pilihan.side_active,
+                  padding: "4px 8px",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontWeight: 600,
+                }}
+              >
+                Menu Aktif
+              </span>
+            </div>
+
+            {/* Pratinjau Tombol & Badge */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn pri"
+                style={{ background: pilihan.accent, borderColor: pilihan.accent }}
+              >
+                + Tombol Utama
+              </button>
+
+              <button type="button" className="btn">
+                Tombol Biasa
+              </button>
+
+              <span
+                style={{
+                  background: pilihan.accent_soft,
+                  color: pilihan.accent_ink,
+                  padding: "5px 10px",
+                  borderRadius: 99,
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              >
+                Badge Soft
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tombol Simpan & Batalkan */}
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="btn pri"
+            disabled={sibuk}
+            style={{ background: pilihan.accent, borderColor: pilihan.accent }}
+            onClick={() => void simpanTema()}
+          >
+            {sibuk ? "Menerapkan Tema…" : `💾 Terapkan & Simpan Tema "${pilihan.nama}"`}
+          </button>
+
+          {adaPerubahan ? (
+            <button
+              type="button"
+              className="btn"
+              disabled={sibuk}
+              onClick={batalkanPratinjau}
+            >
+              ↩ Batalkan Pratinjau
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
