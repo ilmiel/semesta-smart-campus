@@ -221,8 +221,6 @@ export async function wajibWaliDari(req: Request, siswaId: number): Promise<{ p:
 
 /** Aktor untuk audit_log / kolom `oleh`. */
 export function aktor(p: Principal): string {
-  if (p.impersonasi) {
-    return `${p.impersonasi.adminEmail} [impersonasi ${p.impersonasi.tipe}:${p.impersonasi.targetNama}]`;
-  }
   return p.email;
 }
+

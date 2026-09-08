@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import KeluarButton from "@/components/KeluarButton";
 import TanpaAkses from "@/components/TanpaAkses";
+import BannerImpersonasi from "@/components/BannerImpersonasi";
 import { principalDariHeaders } from "@/server/sesi";
 
 /**
@@ -60,6 +61,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="app">
       <Sidebar />
       <main className="adm">
+        {p.impersonasi ? <BannerImpersonasi impersonasi={p.impersonasi} /> : null}
         <div className="adm-akun">
           <span className="chip-user">
             <span className="av">{inisial(p.nama || p.email)}</span> {p.email}
