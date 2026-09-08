@@ -8,15 +8,22 @@
  *   3. scrypt yang mahal (N=2^14, r=8) supaya brute force offline pun lambat.
  * Nilai PIN mentah tidak pernah di-log dan tidak pernah disimpan.
  */
-import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
+import { randomBytes, scrypt, type ScryptOptions, timingSafeEqual } from "node:crypto";
 import { fnSatu, skalar } from "./db";
 import { HttpError } from "./http";
 
 const N = 1 << 14, R = 8, P = 1, LEN = 32;
 // scrypt butuh memori 128·N·r byte; beri batas eksplisit supaya tidak kena default 32 MB Node.
 const MAXMEM = 128 * N * R * 2;
-const scryptAsync = promisify(scrypt);
+
+function scryptAsync(password: string | Buffer, salt: string | Buffer, keylen: number, options: ScryptOptions): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scrypt(password, salt, keylen, options, (err, derivedKey) => {
+      if (err) reject(err);
+      else resolve(derivedKey);
+    });
+  });
+}
 
 export async function hashPin(pin: string): Promise<string> {
   if (!/^\d{6}$/.test(pin)) throw new HttpError(400, "PIN_FORMAT", "PIN harus 6 digit");
