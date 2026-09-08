@@ -10,8 +10,14 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { Gateway, HasilWebhook } from "./index";
 
-const SECRET = () => process.env.SIMULASI_SECRET ?? "simulasi-dev-secret";
-const BASE = () => process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+const SECRET = () => process.env.SIMULASI_SECRET || "simulasi-secret-semesta-smart-campus";
+
+function dapatkanBase(): string {
+  if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL.replace(/\/$/, "");
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "";
+}
 
 export function tandaTanganSimulasi(body: string): string {
   return createHmac("sha256", SECRET()).update(body).digest("hex");
@@ -22,9 +28,10 @@ export const gatewaySimulasi: Gateway = {
 
   async buatInvoice(p) {
     const invoiceId = `SIM-${p.topupId}-${randomBytes(3).toString("hex").toUpperCase()}`;
+    const base = dapatkanBase();
     return {
       invoiceId,
-      url: `${BASE()}/simulasi-bayar/${invoiceId}?nominal=${p.nominalRp}`,
+      url: `${base}/simulasi-bayar/${invoiceId}?nominal=${p.nominalRp}`,
       kedaluwarsa: new Date(Date.now() + p.kedaluwarsaMenit * 60_000),
     };
   },

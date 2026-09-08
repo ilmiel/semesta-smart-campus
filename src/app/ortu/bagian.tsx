@@ -309,10 +309,8 @@ export default function Bagian() {
             {invoice ? (
               <>
                 {invoice.gateway === "simulasi" ? (
-                  <div className="t-err" style={{ marginBottom: 10 }}>
-                    Sekolah masih memakai gateway <b>simulasi</b> untuk uji coba — halaman
-                    pembayarannya bukan pembayaran sungguhan. Untuk mengisi saldo sekarang,
-                    serahkan tunai ke TU.
+                  <div className="stat-hilang" style={{ marginBottom: 12 }}>
+                    💡 <b>Mode Uji Coba:</b> Sekolah saat ini menggunakan gateway pembayaran <b>simulasi</b>. Klik tombol <b>Buka halaman pembayaran</b> di bawah untuk menyelesaikan simulasi pembayaran agar saldo langsung bertambah.
                   </div>
                 ) : null}
                 <p style={{ fontSize: 13.5 }}>

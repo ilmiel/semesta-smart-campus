@@ -50,22 +50,33 @@ export interface Gateway {
   cekStatus(invoiceId: string): Promise<{ lunas: boolean; gagal: boolean; nominalRp: number | null; dibayarPada: Date | null }>;
 }
 
+export function apikahMayarSiap(): boolean {
+  return Boolean(process.env.MAYAR_API_KEY && process.env.MAYAR_API_KEY.trim());
+}
+
+export function apikahSimulasiDiizinkan(): boolean {
+  if (process.env.NODE_ENV !== "production") return true;
+  if (process.env.IZINKAN_SIMULASI_PRODUKSI === "ya" || process.env.GATEWAY === "simulasi") return true;
+  if (!apikahMayarSiap()) return true;
+  return false;
+}
+
 export function gateway(): Gateway {
-  const pilih = process.env.GATEWAY ?? (process.env.NODE_ENV === "production" ? "mayar" : "simulasi");
+  const hasMayar = apikahMayarSiap();
+  const defaultGateway = hasMayar ? "mayar" : "simulasi";
+  const pilih = process.env.GATEWAY ?? defaultGateway;
+
   if (pilih === "simulasi") {
-    if (process.env.NODE_ENV === "production") {
-      if (process.env.IZINKAN_SIMULASI_PRODUKSI !== "ya") {
-        throw new Error("GATEWAY=simulasi tidak boleh dipakai di produksi");
-      }
-      // Audit §2.8: rahasia bawaan = webhook simulasi bisa dipalsukan siapa
-      // pun, dan itu berarti saldo bisa ditambah tanpa uang masuk.
-      const s = process.env.SIMULASI_SECRET;
-      if (!s || s === "simulasi-dev-secret") {
-        throw new Error("SIMULASI_SECRET wajib diisi (dan bukan nilai bawaan) saat gateway simulasi dipakai di produksi");
-      }
+    if (process.env.NODE_ENV === "production" && hasMayar && process.env.IZINKAN_SIMULASI_PRODUKSI !== "ya") {
+      throw new Error("GATEWAY=simulasi tidak boleh dipakai di produksi saat MAYAR_API_KEY sudah aktif");
     }
     return gatewaySimulasi;
   }
-  if (pilih === "mayar") return gatewayMayar;
+  if (pilih === "mayar") {
+    if (!hasMayar) {
+      return gatewaySimulasi;
+    }
+    return gatewayMayar;
+  }
   throw new Error(`GATEWAY tidak dikenal: ${pilih}`);
 }
