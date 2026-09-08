@@ -34,7 +34,7 @@ export const GET = tangani(async (req) => {
         ])
       : Promise.resolve([[], []]),
   ]);
-  const kartu_aktif = sejak ? undefined : await fn("snapshot_kartu_aktif", []);
+  const kartu_aktif = sejak ? undefined : (d.layanan === "kantin" ? await fn("snapshot_kartu_aktif", []) : undefined);
   await q(`UPDATE device SET terakhir_sinkron = now() WHERE id = $1`, [d.id]);
   return ok({ waktu_server: new Date().toISOString(), device: d, kebijakan, kartu_dicabut: dicabut, kartu_aktif, menu, tarif, rak, petugas });
 });

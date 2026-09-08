@@ -73,7 +73,8 @@ export function csv(baris: Record<string, unknown>[], namaFile: string): Respons
   if (baris.length === 0) return new Response("", { headers: { "content-type": "text/csv; charset=utf-8" } });
   const kolom = Object.keys(baris[0]);
   const esc = (x: unknown) => {
-    const s = x === null || x === undefined ? "" : x instanceof Date ? x.toISOString() : String(x);
+    let s = x === null || x === undefined ? "" : x instanceof Date ? x.toISOString() : String(x);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
     return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const isi = [kolom.join(";"), ...baris.map((b) => kolom.map((k) => esc(b[k])).join(";"))].join("\r\n");

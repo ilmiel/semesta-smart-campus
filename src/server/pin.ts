@@ -8,25 +8,32 @@
  *   3. scrypt yang mahal (N=2^14, r=8) supaya brute force offline pun lambat.
  * Nilai PIN mentah tidak pernah di-log dan tidak pernah disimpan.
  */
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
 import { fnSatu, skalar } from "./db";
 import { HttpError } from "./http";
 
 const N = 1 << 14, R = 8, P = 1, LEN = 32;
 // scrypt butuh memori 128·N·r byte; beri batas eksplisit supaya tidak kena default 32 MB Node.
 const MAXMEM = 128 * N * R * 2;
+const scryptAsync = promisify(scrypt);
 
-export function hashPin(pin: string): string {
+export async function hashPin(pin: string): Promise<string> {
   if (!/^\d{6}$/.test(pin)) throw new HttpError(400, "PIN_FORMAT", "PIN harus 6 digit");
   const salt = randomBytes(16);
-  const h = scryptSync(pin, salt, LEN, { N, r: R, p: P, maxmem: MAXMEM });
+  const h = (await scryptAsync(pin, salt, LEN, { N, r: R, p: P, maxmem: MAXMEM })) as Buffer;
   return `scrypt$${N}$${R}$${P}$${salt.toString("base64")}$${h.toString("base64")}`;
 }
 
-export function cocokPin(pin: string, hash: string): boolean {
+export async function cocokPin(pin: string, hash: string): Promise<boolean> {
   const [alg, n, r, p, salt, h] = hash.split("$");
   if (alg !== "scrypt") return false;
-  const calon = scryptSync(pin, Buffer.from(salt, "base64"), LEN, { N: Number(n), r: Number(r), p: Number(p), maxmem: 128 * Number(n) * Number(r) * 2 });
+  const calon = (await scryptAsync(pin, Buffer.from(salt, "base64"), LEN, {
+    N: Number(n),
+    r: Number(r),
+    p: Number(p),
+    maxmem: 128 * Number(n) * Number(r) * 2,
+  })) as Buffer;
   const asli = Buffer.from(h, "base64");
   return calon.length === asli.length && timingSafeEqual(calon, asli);
 }
@@ -52,7 +59,7 @@ export async function verifikasiPinSiswa(siswaId: number, pin: string, deviceId:
   if (info.terkunci) {
     throw new HttpError(423, "PIN_TERKUNCI", "PIN terkunci — hubungi TU", { hingga: info.terkunci_hingga });
   }
-  const benar = cocokPin(pin, info.hash);
+  const benar = await cocokPin(pin, info.hash);
   const c = await fnSatu<PinCatat>("pin_catat", [siswaId, benar, deviceId, ip]);
   if (!benar) {
     if (c.terkunci) throw new HttpError(423, "PIN_TERKUNCI", "PIN salah 5 kali — terkunci", { hingga: c.terkunci_hingga });
@@ -66,12 +73,12 @@ export async function gantiPinSiswa(siswaId: number, pinLama: string, pinBaru: s
   if (lemah) throw new HttpError(400, "PIN_LEMAH", lemah);
   if (pinLama === pinBaru) throw new HttpError(400, "PIN_SAMA", "PIN baru harus berbeda dari PIN lama");
   await verifikasiPinSiswa(siswaId, pinLama, null, ip);
-  await skalar("pin_set", [siswaId, hashPin(pinBaru), "siswa", false]);
+  await skalar("pin_set", [siswaId, await hashPin(pinBaru), "siswa", false]);
 }
 
 /** TU mereset PIN (F-34): siswa hadir, PIN sementara wajib diganti pada pemakaian pertama. */
 export async function resetPinOlehTU(siswaId: number, pinSementara: string, emailTU: string): Promise<void> {
-  await skalar("pin_set", [siswaId, hashPin(pinSementara), emailTU, true]);
+  await skalar("pin_set", [siswaId, await hashPin(pinSementara), emailTU, true]);
 }
 
 /** PIN sementara acak 6 digit (untuk TU). */

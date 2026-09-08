@@ -51,6 +51,6 @@ export async function wajibDevice(req: Request, ...layanan: DeviceAktif["layanan
   }
   // jejak "terakhir online" (F-93) — murah, satu UPDATE per request
   void q(`UPDATE device SET terakhir_online = now(), versi_terminal = COALESCE($2, versi_terminal) WHERE id = $1`,
-         [d.id, req.headers.get("x-terminal-versi")]).catch(() => { /* jangan ganggu transaksi */ });
+         [d.id, req.headers.get("x-terminal-versi")?.slice(0, 40) ?? null]).catch(() => { /* jangan ganggu transaksi */ });
   return { id: d.id, kode: d.kode, nama: d.nama, layanan: d.layanan, lokasi: d.lokasi, limit_offline_rp: d.limit_offline_rp };
 }
