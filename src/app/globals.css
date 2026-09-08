@@ -266,6 +266,339 @@ td.min { color:var(--ink); } td.plus { color:var(--good-text); }
 .stat-hilang { border:1.5px dashed var(--critical); background:var(--crit-soft); color:var(--crit-text);
   border-radius:10px; padding:12px 14px; font-size:13px; font-weight:500; }
 
+/* ===== Portal Ortu Mobile-First & Instagram-Style Dock ===== */
+.ortu-shell {
+  min-height: 100vh;
+  background: radial-gradient(circle at 50% 10%, rgba(20, 108, 79, 0.08), transparent 60%), #f0f3ee;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+:root[data-theme="dark"] .ortu-shell {
+  background: radial-gradient(circle at 50% 10%, rgba(76, 191, 142, 0.08), transparent 60%), #080a09;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ortu-shell {
+    background: radial-gradient(circle at 50% 10%, rgba(76, 191, 142, 0.08), transparent 60%), #080a09;
+  }
+}
+
+.ortu-frame {
+  width: 100%;
+  max-width: 440px;
+  min-height: 100vh;
+  background: var(--bg);
+  position: relative;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.12);
+  border-left: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 14px));
+}
+@media (max-width: 640px) {
+  .ortu-frame {
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+}
+
+/* Header atas ala mobile app */
+.ortu-topbar {
+  background: var(--side-bg);
+  color: #fff;
+  padding: 14px 18px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+.ortu-topbar-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ortu-topbar-brand {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ortu-topbar-brand b {
+  font-size: 14.5px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ortu-topbar-brand small {
+  color: var(--side-ink-2);
+  font-size: 11px;
+}
+
+/* Stories ala Instagram untuk pilih anak */
+.ortu-stories {
+  display: flex;
+  gap: 14px;
+  padding: 12px 16px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+}
+.ortu-stories::-webkit-scrollbar {
+  display: none;
+}
+.ortu-story-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  flex: none;
+  outline: none;
+}
+.ortu-story-ring {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  padding: 2.5px;
+  background: var(--rule);
+  display: grid;
+  place-items: center;
+  transition: transform 0.18s, background 0.18s;
+}
+.ortu-story-item.active .ortu-story-ring {
+  background: linear-gradient(135deg, #10b981 0%, #146c4f 50%, #3b82f6 100%);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+  transform: scale(1.04);
+}
+.ortu-story-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--surface);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--accent);
+}
+.ortu-story-item.active .ortu-story-avatar {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+.ortu-story-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-2);
+  max-width: 66px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+.ortu-story-item.active .ortu-story-name {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Floating Instagram Bottom Dock */
+.ortu-dock-wrap {
+  position: fixed;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(410px, calc(100% - 24px));
+  z-index: 99;
+  pointer-events: none;
+}
+.ortu-dock {
+  pointer-events: auto;
+  background: rgba(20, 30, 24, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.35);
+}
+.ortu-dock-btn {
+  background: transparent;
+  border: none;
+  border-radius: 9999px;
+  padding: 7px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 10px;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  outline: none;
+}
+.ortu-dock-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+.ortu-dock-btn.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+.ortu-dock-btn svg {
+  width: 21px;
+  height: 21px;
+  transition: transform 0.2s;
+}
+.ortu-dock-btn.active svg {
+  transform: scale(1.08);
+}
+.ortu-dock-badge {
+  position: absolute;
+  top: 3px;
+  right: 8px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 1px 5px;
+  line-height: 1.2;
+  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.5);
+}
+
+/* Digital Card bergaya e-wallet / kartu pelajar pintar */
+.ortu-digital-card {
+  position: relative;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #10231b 0%, #16382b 60%, #1a4736 100%);
+  color: #ffffff;
+  padding: 20px 20px 18px;
+  box-shadow: 0 12px 28px rgba(16, 35, 27, 0.22);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.ortu-digital-card::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(76, 191, 142, 0.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+.ortu-digital-card .card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.ortu-digital-card .card-chip {
+  width: 30px;
+  height: 22px;
+  background: linear-gradient(135deg, #e5b95f 0%, #c49638 100%);
+  border-radius: 5px;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.4);
+}
+.ortu-digital-card .card-user {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.ortu-digital-card .card-sub {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.75);
+}
+.ortu-digital-card .card-saldo-lbl {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.72);
+  margin-top: 10px;
+  margin-bottom: 2px;
+}
+.ortu-digital-card .card-saldo-val {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+.ortu-digital-card .card-limit-info {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.ortu-quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+.ortu-quick-btn {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  color: #ffffff;
+  padding: 8px 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.15s;
+}
+.ortu-quick-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+.ortu-quick-btn.danger {
+  background: rgba(208, 59, 59, 0.2);
+  border-color: rgba(208, 59, 59, 0.35);
+  color: #fca5a5;
+}
+
+/* Tab Content Area */
+.ortu-body {
+  padding: 16px 16px 24px;
+}
+.ortu-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ortu-action-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+
 /* Login */
 .login-wrap { min-height:100vh; display:grid; place-items:center; padding:24px; }
 .login-card { width:min(400px,100%); background:var(--surface); border:1px solid var(--rule); border-radius:16px; padding:32px 30px; box-shadow:var(--shadow); }
