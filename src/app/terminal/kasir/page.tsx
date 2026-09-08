@@ -75,6 +75,7 @@ export default function TerminalKasir() {
   // --- PO ------------------------------------------------------------------
   const [po, setPo] = useState<PoBaris[]>([]);
   const [kodePo, setKodePo] = useState("");
+  const [poUid, setPoUid] = useState("");
 
   const ambang = kebijakan?.ambang_pin_rp ?? 25000;
   const batasOffline = kebijakan?.limit_offline_rp ?? 0;
@@ -140,6 +141,7 @@ export default function TerminalKasir() {
   const tolak = (t: string) => { setPesan(t); setTahap("tolak"); };
   const transaksiBaru = () => {
     setNominal(0); setKeranjang({}); setUid(""); setTap(null); setPesan("");
+    setKodePo(""); setPoUid("");
     setFoto(f => { if (f) URL.revokeObjectURL(f); return null; });
     idem.current = ""; setTahap("beranda");
   };
@@ -374,19 +376,29 @@ export default function TerminalKasir() {
                   Sudah dibayar saat pesan — tidak ada pembayaran di sini. Tap kartu siswa, atau cari
                   pakai kode PO kalau kartunya diblokir (F-48).
                 </p>
-                <div className="field">
+                <form onSubmit={e => {
+                  e.preventDefault();
+                  if (poUid.trim()) void cariPo({ uid: poUid.trim().toUpperCase() });
+                }} className="field">
                   <label className="f" htmlFor="po-uid">Tap kartu (UID)</label>
-                  <input id="po-uid" style={{ width: "100%" }} placeholder="tempelkan kartu / ketik UID"
-                    onKeyDown={e => { if (e.key === "Enter") void cariPo({ uid: (e.target as HTMLInputElement).value.trim().toUpperCase() }); }} />
-                </div>
-                <div className="field">
-                  <label className="f" htmlFor="po-kode">atau kode PO</label>
-                  <input id="po-kode" style={{ width: "100%" }} value={kodePo} onChange={e => setKodePo(e.target.value.toUpperCase())}
-                    onKeyDown={e => { if (e.key === "Enter" && kodePo.trim()) void cariPo({ kode: kodePo.trim() }); }} />
-                </div>
-                <button type="button" className="btn pri blok" disabled={sibuk || !kodePo.trim()} onClick={() => void cariPo({ kode: kodePo.trim() })}>
-                  Cari PO
-                </button>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input id="po-uid" style={{ flex: 1, fontFamily: "var(--mono, monospace)" }}
+                      value={poUid} onChange={e => setPoUid(e.target.value.toUpperCase())}
+                      placeholder="tempelkan kartu / ketik UID" />
+                    <button type="submit" className="btn" disabled={sibuk || !poUid.trim()}>Cari Kartu</button>
+                  </div>
+                </form>
+                <form onSubmit={e => {
+                  e.preventDefault();
+                  if (kodePo.trim()) void cariPo({ kode: kodePo.trim() });
+                }} className="field">
+                  <label className="f" htmlFor="po-kode">atau kode PO (mis. PO-2409-ABC1)</label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input id="po-kode" style={{ flex: 1, fontFamily: "var(--mono, monospace)" }}
+                      value={kodePo} onChange={e => setKodePo(e.target.value.toUpperCase())} />
+                    <button type="submit" className="btn pri" disabled={sibuk || !kodePo.trim()}>Cari Kode</button>
+                  </div>
+                </form>
                 {po.map(p => (
                   <div className="att" key={p.po_id}>
                     <span className={`badge ${p.status === "dibayar" ? "good" : "mute"}`}>{p.status}</span>
@@ -440,15 +452,71 @@ export default function TerminalKasir() {
                   <span className="l">Total</span><span className="v">{rp(total)}</span>
                 </div>
                 <p className="t-big" style={{ margin: "10px 0 6px" }}><b>Tap kartu siswa.</b></p>
-                <div className="field">
-                  <label className="f" htmlFor="uid">UID kartu</label>
-                  {/* Reader USB mengetikkan UID lalu menekan Enter — sama seperti mengetik manual. */}
-                  <input id="uid" autoFocus style={{ width: "100%", fontFamily: "var(--mono, monospace)" }}
-                    placeholder="tempelkan kartu ke reader"
-                    onKeyDown={e => { if (e.key === "Enter") void identifikasi((e.target as HTMLInputElement).value); }} />
-                </div>
-                {sibuk ? <p className="p-note" style={{ margin: 0 }}>Memeriksa kartu…</p> : null}
-                <button type="button" className="btn blok" style={{ marginTop: 10 }} onClick={transaksiBaru}>← Batal</button>
+                <form onSubmit={e => {
+                  e.preventDefault();
+                  if (uid.trim().length >= 8 && !sibuk) void identifikasi(uid);
+                }}>
+                  <div className="field">
+                    <label className="f" htmlFor="uid">UID kartu</label>
+                    <input
+                      id="uid"
+                      autoFocus
+                      style={{ width: "100%", fontFamily: "var(--mono, monospace)", fontSize: 16 }}
+                      value={uid}
+                      onChange={e => setUid(e.target.value.toUpperCase())}
+                      placeholder="tempelkan kartu ke reader / ketik UID"
+                      disabled={sibuk}
+                    />
+                  </div>
+
+                  <div style={{ marginTop: 10, marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
+                      Kartu siswa untuk uji coba (klik untuk isi otomatis):
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {[
+                        { nama: "Alfian Pratama", uid: "04A1F1A0000001" },
+                        { nama: "Rafif Wisanggeni", uid: "04A1B2C3D4E5F6" },
+                        { nama: "Aishabilla", uid: "04FFEE11223344" },
+                        { nama: "Keenan Alvaro", uid: "04C0FFEE000001" },
+                      ].map(k => (
+                        <button
+                          key={k.uid}
+                          type="button"
+                          className="badge"
+                          style={{
+                            cursor: "pointer",
+                            padding: "6px 10px",
+                            border: "1px solid var(--border)",
+                            background: "var(--panel-2)",
+                            fontSize: 12,
+                            borderRadius: 6,
+                          }}
+                          onClick={() => {
+                            setUid(k.uid);
+                            void identifikasi(k.uid);
+                          }}
+                        >
+                          💳 {k.nama} ({k.uid})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {sibuk ? <p className="p-note" style={{ margin: "0 0 10px" }}>Memeriksa kartu…</p> : null}
+
+                  <button
+                    type="submit"
+                    className="btn pri blok"
+                    style={{ minHeight: 52, fontSize: 16 }}
+                    disabled={sibuk || uid.trim().length < 8}
+                  >
+                    {sibuk ? "Memproses…" : "Proses Tap Kartu ↵"}
+                  </button>
+                  <button type="button" className="btn blok" style={{ marginTop: 8 }} onClick={transaksiBaru} disabled={sibuk}>
+                    ← Batal
+                  </button>
+                </form>
               </section>
             ) : null}
 
