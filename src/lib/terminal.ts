@@ -14,6 +14,15 @@ const KUNCI_ANTRIAN = "smartcampus.antrian_offline";
 // ---------------------------------------------------------------- kunci
 
 export function ambilKunci(): string | null {
+  if (typeof window !== "undefined") {
+    try {
+      const q = new URLSearchParams(window.location.search).get("kunci");
+      if (q && q.trim()) {
+        simpanKunci(q.trim());
+        return q.trim();
+      }
+    } catch { /* abaikan */ }
+  }
   try { return localStorage.getItem(KUNCI_PERANGKAT); } catch { return null; }
 }
 

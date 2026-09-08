@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import BannerImpersonasi from "@/components/BannerImpersonasi";
 import TanpaAkses from "@/components/TanpaAkses";
 import { principalDariHeaders } from "@/server/sesi";
 
@@ -35,5 +36,10 @@ export default async function SiswaLayout({ children }: { children: React.ReactN
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {p.impersonasi ? <BannerImpersonasi impersonasi={p.impersonasi} /> : null}
+      {children}
+    </>
+  );
 }

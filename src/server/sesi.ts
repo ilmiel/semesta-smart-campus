@@ -7,6 +7,7 @@
  *
  * Peran ditegakkan DI SINI (server), bukan dengan menyembunyikan tombol.
  */
+import { createHmac } from "node:crypto";
 import { auth } from "@/server/auth";   // alias (bukan relatif) supaya uji bisa menggantinya
 import { q, satu } from "./db";
 import { HttpError, ipDariHeaders } from "./http";
@@ -15,6 +16,14 @@ export type Peran =
   | "admin_it" | "keuangan" | "tu" | "kasir" | "laundry" | "asrama"
   | "pustakawan" | "kesiswaan" | "wali_kelas" | "manajemen";
 
+export interface ImpersonasiInfo {
+  tipe: "siswa" | "ortu";
+  targetId: number;
+  targetNama: string;
+  targetEmail: string;
+  adminEmail: string;
+}
+
 export interface Principal {
   email: string;
   nama: string;
@@ -22,6 +31,31 @@ export interface Principal {
   siswa: { id: number; nis: string; nama: string } | null;
   wali: { waliId: number; siswaId: number; utama: boolean }[];   // anak-anak yang dia wali-i
   ip: string | null;
+  impersonasi?: ImpersonasiInfo | null;
+}
+
+const SECRET = process.env.BETTER_AUTH_SECRET || "semesta-smart-campus-impersonate-secret";
+export const COOKIE_IMPERSONASI = "semesta_impersonasi";
+
+export function buatTokenImpersonasi(payload: { tipe: "siswa" | "ortu"; id: number; adminEmail: string }): string {
+  const exp = Date.now() + 2 * 60 * 60 * 1000; // 2 jam
+  const data = Buffer.from(JSON.stringify({ ...payload, exp })).toString("base64url");
+  const sig = createHmac("sha256", SECRET).update(data).digest("base64url");
+  return `${data}.${sig}`;
+}
+
+export function verifikasiTokenImpersonasi(token: string): { tipe: "siswa" | "ortu"; id: number; adminEmail: string } | null {
+  try {
+    const [data, sig] = token.split(".");
+    if (!data || !sig) return null;
+    const expectedSig = createHmac("sha256", SECRET).update(data).digest("base64url");
+    if (sig !== expectedSig) return null;
+    const parsed = JSON.parse(Buffer.from(data, "base64url").toString("utf8"));
+    if (typeof parsed !== "object" || !parsed || Date.now() > parsed.exp) return null;
+    return { tipe: parsed.tipe, id: Number(parsed.id), adminEmail: String(parsed.adminEmail) };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -66,13 +100,72 @@ export async function principalDariHeaders(h: Headers): Promise<Principal | null
       `SELECT w.id AS wali_id, w.siswa_id, w.utama FROM wali w JOIN siswa s ON s.id = w.siswa_id
         WHERE lower(w.email) = $1 AND s.status <> 'keluar'`, [email]),
   ]);
+
+  const normalPeran = normalkanPeran(peran?.peran);
+
+  // Periksa apakah staf dengan peran admin_it / tu sedang mengaktifkan mode impersonasi pengecekan
+  const cookieStr = h.get("cookie") ?? "";
+  const match = cookieStr.match(new RegExp(`(?:^|;\\s*)${COOKIE_IMPERSONASI}=([^;]+)`));
+  const token = match ? decodeURIComponent(match[1]) : null;
+  const imp = token ? verifikasiTokenImpersonasi(token) : null;
+
+  if (imp && imp.adminEmail.toLowerCase() === email && (normalPeran.includes("admin_it") || normalPeran.includes("tu"))) {
+    if (imp.tipe === "siswa") {
+      const targetSiswa = await satu<{ id: number; nis: string; nama: string; email: string | null }>(
+        `SELECT id, nis, nama, email FROM siswa WHERE id = $1`, [imp.id]
+      );
+      if (targetSiswa) {
+        return {
+          email,
+          nama: sesi.user.name || email,
+          peran: normalPeran,
+          siswa: { id: targetSiswa.id, nis: targetSiswa.nis, nama: targetSiswa.nama },
+          wali: [],
+          ip: ipDariHeaders(h),
+          impersonasi: {
+            tipe: "siswa",
+            targetId: targetSiswa.id,
+            targetNama: targetSiswa.nama,
+            targetEmail: targetSiswa.email ?? targetSiswa.nis,
+            adminEmail: email,
+          },
+        };
+      }
+    } else if (imp.tipe === "ortu") {
+      const targetWali = await satu<{ id: number; nama: string; email: string | null }>(
+        `SELECT id, nama, email FROM wali WHERE id = $1`, [imp.id]
+      );
+      if (targetWali) {
+        const anakWali = await q<{ wali_id: number; siswa_id: number; utama: boolean }>(
+          `SELECT w.id AS wali_id, w.siswa_id, w.utama FROM wali w JOIN siswa s ON s.id = w.siswa_id
+           WHERE w.id = $1 AND s.status <> 'keluar'`, [targetWali.id]
+        );
+        return {
+          email,
+          nama: sesi.user.name || email,
+          peran: normalPeran,
+          siswa: null,
+          wali: anakWali.map((w) => ({ waliId: w.wali_id, siswaId: w.siswa_id, utama: w.utama })),
+          ip: ipDariHeaders(h),
+          impersonasi: {
+            tipe: "ortu",
+            targetId: targetWali.id,
+            targetNama: targetWali.nama,
+            targetEmail: targetWali.email ?? "",
+            adminEmail: email,
+          },
+        };
+      }
+    }
+  }
+
   // Audit §3.9: lewat ipDariHeaders() supaya nilai non-IP tidak sampai ke kolom INET.
   return {
     email,
     // `||` bukan `??`: Better Auth mengisi name dengan string kosong untuk
     // akun magic link yang belum punya nama.
     nama: sesi.user.name || email,
-    peran: normalkanPeran(peran?.peran),
+    peran: normalPeran,
     siswa: siswa ?? null,
     wali: wali.map((w) => ({ waliId: w.wali_id, siswaId: w.siswa_id, utama: w.utama })),
     ip: ipDariHeaders(h),
@@ -122,4 +215,9 @@ export async function wajibWaliDari(req: Request, siswaId: number): Promise<{ p:
 }
 
 /** Aktor untuk audit_log / kolom `oleh`. */
-export function aktor(p: Principal): string { return p.email; }
+export function aktor(p: Principal): string {
+  if (p.impersonasi) {
+    return `${p.impersonasi.adminEmail} [impersonasi ${p.impersonasi.tipe}:${p.impersonasi.targetNama}]`;
+  }
+  return p.email;
+}
