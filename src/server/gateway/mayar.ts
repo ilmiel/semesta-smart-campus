@@ -20,8 +20,32 @@
 import type { Gateway, HasilWebhook } from "./index";
 
 const API_BASE = process.env.MAYAR_API_BASE ?? "https://api.mayar.id";   // [TODO-1] konfirmasi
-const apiKey = () => process.env.MAYAR_API_KEY ?? "";
-const webhookToken = () => process.env.MAYAR_WEBHOOK_TOKEN ?? "";
+
+export async function ambilMayarApiKey(): Promise<string> {
+  if (process.env.MAYAR_API_KEY && process.env.MAYAR_API_KEY.trim()) {
+    return process.env.MAYAR_API_KEY.trim();
+  }
+  try {
+    const { skalar } = await import("@/server/db");
+    const k = await skalar<string>(`SELECT nilai #>> '{}' FROM kebijakan WHERE kunci = 'gateway_api_key'`);
+    return k?.trim() || "";
+  } catch {
+    return "";
+  }
+}
+
+export async function ambilMayarWebhookToken(): Promise<string> {
+  if (process.env.MAYAR_WEBHOOK_TOKEN && process.env.MAYAR_WEBHOOK_TOKEN.trim()) {
+    return process.env.MAYAR_WEBHOOK_TOKEN.trim();
+  }
+  try {
+    const { skalar } = await import("@/server/db");
+    const k = await skalar<string>(`SELECT nilai #>> '{}' FROM kebijakan WHERE kunci = 'gateway_webhook_token'`);
+    return k?.trim() || "";
+  } catch {
+    return "";
+  }
+}
 
 function belumSiap(bagian: string): never {
   throw new Error(`Integrasi mayar.id belum dilengkapi (${bagian}) — lihat src/server/gateway/mayar.ts`);
@@ -31,7 +55,8 @@ export const gatewayMayar: Gateway = {
   nama: "mayar",
 
   async buatInvoice(p) {
-    if (!apiKey()) throw new Error("MAYAR_API_KEY belum di-set");
+    const key = await ambilMayarApiKey();
+    if (!key) throw new Error("MAYAR_API_KEY belum dikonfigurasi (atur di menu Kebijakan atau .env)");
     // [TODO-1] Contoh kerangka pemanggilan — path & field WAJIB dicocokkan dengan dokumentasi:
     // const res = await fetch(`${API_BASE}/hl/v1/payment/create`, {
     //   method: "POST",
@@ -52,7 +77,8 @@ export const gatewayMayar: Gateway = {
   },
 
   async uraiWebhook(rawBody, headers): Promise<HasilWebhook> {
-    if (!webhookToken()) {
+    const token = await ambilMayarWebhookToken();
+    if (!token) {
       return { valid: false, event: null, invoiceId: null, lunas: false, gagal: false, nominalRp: null, dibayarPada: null, catatan: "MAYAR_WEBHOOK_TOKEN belum di-set" };
     }
     // [TODO-2] Verifikasi tanda tangan. JANGAN menandai valid sebelum ini diisi.

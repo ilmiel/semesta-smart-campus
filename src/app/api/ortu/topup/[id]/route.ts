@@ -6,7 +6,10 @@ import { wajibLogin } from "@/server/sesi";
 export const GET = tangani<{ id: string }>(async (req, { params }) => {
   const p = await wajibLogin(req);
   const id = Number((await params).id);
-  const t = await satu<{ siswa_id: number }>(`SELECT id, siswa_id, nominal_rp, status, gateway, invoice_id, invoice_url, dibuat, kedaluwarsa, dibayar FROM topup WHERE id = $1`, [id]);
+  const t = await satu<{ siswa_id: number; status: string; metode: string; nominal_rp: number; alasan_tolak: string | null }>(
+    `SELECT id, siswa_id, nominal_rp, status, gateway, metode, bukti_foto, invoice_id, invoice_url, alasan_tolak, dibuat, kedaluwarsa, dibayar FROM topup WHERE id = $1`,
+    [id]
+  );
   if (!t || !p.wali.some((w) => w.siswaId === t.siswa_id)) throw new HttpError(404, "TIDAK_DITEMUKAN", "top-up tidak ditemukan");
   return ok(t);
 });

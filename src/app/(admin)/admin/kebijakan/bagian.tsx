@@ -62,11 +62,22 @@ function jenisKunci(k: string): "boolean" | "jam" | "pilihan" | "angka" {
   return "angka";
 }
 
+const KUNCI_TOPUP = [
+  "topup_metode",
+  "topup_bank_nama",
+  "topup_bank_rekening",
+  "topup_bank_atas_nama",
+  "topup_bank_petunjuk",
+  "gateway_provider",
+  "gateway_api_key",
+  "gateway_webhook_token",
+];
+
 export default function Bagian() {
   const { data, galat, sedang, muatUlang } = useMuat<{ kebijakan: Kebijakan[] }>("/api/admin/kebijakan");
   const semua = data?.kebijakan ?? [];
   const peta = new Map(semua.map(k => [k.kunci, k]));
-  const dipakai = new Set(KELOMPOK.flatMap(g => g.kunci).concat("limit_offline_rp"));
+  const dipakai = new Set(KELOMPOK.flatMap(g => g.kunci).concat("limit_offline_rp", KUNCI_TOPUP));
   const sisa = semua.filter(k => !dipakai.has(k.kunci));
 
   return (
@@ -86,6 +97,8 @@ export default function Bagian() {
 
       {galat ? <div className="demo" style={{ borderColor: "var(--crit)" }}>{galat}</div> : null}
       {sedang && semua.length === 0 ? <p className="p-note">Memuat kebijakan…</p> : null}
+
+      <PanelMetodeTopup peta={peta} selesai={muatUlang} />
 
       {KELOMPOK.map(g => {
         const baris = g.kunci.map(k => peta.get(k)).filter((x): x is Kebijakan => Boolean(x));
@@ -209,5 +222,245 @@ function Baris({ isi, pasangan, selesai }: {
         ) : null}
       </div>
     </div>
+  );
+}
+
+function PanelMetodeTopup({ peta, selesai }: { peta: Map<string, Kebijakan>; selesai: () => Promise<void> }) {
+  const metodeAwal = (peta.get("topup_metode")?.nilai as string) || "verifikasi_admin";
+  const [metode, setMetode] = useState(metodeAwal);
+
+  // Bank fields
+  const [bankNama, setBankNama] = useState(String(peta.get("topup_bank_nama")?.nilai ?? "Bank Central Asia (BCA)"));
+  const [bankRekening, setBankRekening] = useState(String(peta.get("topup_bank_rekening")?.nilai ?? "8230918239"));
+  const [bankAtasNama, setBankAtasNama] = useState(String(peta.get("topup_bank_atas_nama")?.nilai ?? "Yayasan Semesta Smart Campus"));
+  const [bankPetunjuk, setBankPetunjuk] = useState(String(peta.get("topup_bank_petunjuk")?.nilai ?? "Transfer sesuai nominal tagihan. Foto atau unggah bukti transfer. Saldo akan otomatis bertambah setelah diverifikasi admin."));
+
+  // Gateway fields
+  const [gwProvider, setGwProvider] = useState(String(peta.get("gateway_provider")?.nilai ?? "mayar"));
+  const [gwApiKey, setGwApiKey] = useState(String(peta.get("gateway_api_key")?.nilai ?? ""));
+  const [gwWebhookToken, setGwWebhookToken] = useState(String(peta.get("gateway_webhook_token")?.nilai ?? ""));
+
+  const [sibuk, setSibuk] = useState(false);
+  const [pesan, setPesan] = useState("");
+  const [gagal, setGagal] = useState(false);
+
+  async function simpanPengaturan(targetMetode: string) {
+    setSibuk(true); setPesan(""); setGagal(false);
+    const batch = [
+      { kunci: "topup_metode", nilai: targetMetode },
+      { kunci: "topup_bank_nama", nilai: bankNama.trim() },
+      { kunci: "topup_bank_rekening", nilai: bankRekening.trim() },
+      { kunci: "topup_bank_atas_nama", nilai: bankAtasNama.trim() },
+      { kunci: "topup_bank_petunjuk", nilai: bankPetunjuk.trim() },
+      { kunci: "gateway_provider", nilai: gwProvider.trim() },
+      { kunci: "gateway_api_key", nilai: gwApiKey.trim() },
+      { kunci: "gateway_webhook_token", nilai: gwWebhookToken.trim() },
+    ];
+    const r = await api("/api/admin/kebijakan", { metode: "PUT", body: { batch } });
+    setSibuk(false);
+    if (!r.ok) {
+      setGagal(true);
+      setPesan(r.pesan ?? "Gagal menyimpan pengaturan top-up");
+      return;
+    }
+    setMetode(targetMetode);
+    setPesan(`Pengaturan metode top-up "${targetMetode === "verifikasi_admin" ? "Verifikasi Admin" : "Payment Gateway"}" berhasil disimpan.`);
+    await selesai();
+  }
+
+  return (
+    <Panel
+      judul="Metode Top-Up Saldo"
+      sub="Tentukan cara orang tua mengisi saldo: Verifikasi Admin (Transfer Bank Manual) atau Payment Gateway Otomatis"
+    >
+      <div style={{ padding: "4px 0 12px" }}>
+        {pesan ? (
+          <div className={gagal ? "a-err" : "a-ok"} style={{ marginBottom: 16 }}>
+            {pesan}
+          </div>
+        ) : null}
+
+        {/* Tab Pemilihan Metode */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12, marginBottom: 18 }}>
+          <button
+            type="button"
+            className="btn"
+            style={{
+              padding: "14px 16px",
+              textAlign: "left",
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              borderRadius: 12,
+              border: metode === "verifikasi_admin" ? "2px solid var(--brand-pri, #10b981)" : "1px solid var(--border, #e5e7eb)",
+              background: metode === "verifikasi_admin" ? "var(--brand-soft, rgba(16, 185, 129, 0.08))" : "var(--surface, #fff)",
+              cursor: "pointer",
+            }}
+            onClick={() => { setMetode("verifikasi_admin"); setPesan(""); }}
+          >
+            <div style={{ fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span>🏦 Verifikasi Admin (Transfer)</span>
+              {metodeAwal === "verifikasi_admin" ? <span className="badge ok" style={{ fontSize: 11 }}>Sedang Aktif</span> : null}
+            </div>
+            <span style={{ fontSize: 13, opacity: 0.85, fontWeight: 400, lineHeight: 1.4 }}>
+              Ortu transfer ke rekening sekolah & unggah foto bukti struk. Staf TU/Keuangan memverifikasi di menu <b>Keuangan</b>.
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className="btn"
+            style={{
+              padding: "14px 16px",
+              textAlign: "left",
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              borderRadius: 12,
+              border: metode === "gateway" ? "2px solid var(--brand-pri, #10b981)" : "1px solid var(--border, #e5e7eb)",
+              background: metode === "gateway" ? "var(--brand-soft, rgba(16, 185, 129, 0.08))" : "var(--surface, #fff)",
+              cursor: "pointer",
+            }}
+            onClick={() => { setMetode("gateway"); setPesan(""); }}
+          >
+            <div style={{ fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span>⚡ Payment Gateway (Otomatis)</span>
+              {metodeAwal === "gateway" ? <span className="badge ok" style={{ fontSize: 11 }}>Sedang Aktif</span> : null}
+            </div>
+            <span style={{ fontSize: 13, opacity: 0.85, fontWeight: 400, lineHeight: 1.4 }}>
+              Pembayaran online otomatis via Mayar.id atau Midtrans. Saldo siswa langsung masuk begitu invoice dibayar.
+            </span>
+          </button>
+        </div>
+
+        {/* Form Verifikasi Admin */}
+        {metode === "verifikasi_admin" ? (
+          <div style={{ background: "var(--surface-sunken, #f8fafc)", border: "1px solid var(--border, #e2e8f0)", borderRadius: 12, padding: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <span style={{ fontSize: 18 }}>📋</span>
+              <div>
+                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Data Rekening Tujuan Transfer Manual</h4>
+                <p className="p-note" style={{ margin: "2px 0 0" }}>Informasi ini tampil di Portal Orang Tua saat membuat permintaan top-up</p>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+              <div>
+                <label className="f" style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600 }}>Nama Bank / E-Wallet</label>
+                <input
+                  type="text"
+                  value={bankNama}
+                  placeholder="Contoh: Bank Central Asia (BCA)"
+                  style={{ width: "100%" }}
+                  onChange={e => setBankNama(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="f" style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600 }}>Nomor Rekening / No. Akun</label>
+                <input
+                  type="text"
+                  value={bankRekening}
+                  placeholder="Contoh: 8230918239"
+                  style={{ width: "100%", fontFamily: "monospace", letterSpacing: 1 }}
+                  onChange={e => setBankRekening(e.target.value)}
+                />
+              </div>
+
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label className="f" style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600 }}>Atas Nama Rekening</label>
+                <input
+                  type="text"
+                  value={bankAtasNama}
+                  placeholder="Contoh: Yayasan Semesta Smart Campus"
+                  style={{ width: "100%" }}
+                  onChange={e => setBankAtasNama(e.target.value)}
+                />
+              </div>
+
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label className="f" style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600 }}>Petunjuk / Catatan Transfer untuk Ortu</label>
+                <textarea
+                  rows={2}
+                  value={bankPetunjuk}
+                  placeholder="Petunjuk transfer untuk orang tua siswa"
+                  style={{ width: "100%", borderRadius: 8, padding: 8 }}
+                  onChange={e => setBankPetunjuk(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginTop: 18, display: "flex", gap: 10, alignItems: "center" }}>
+              <button
+                type="button"
+                className="btn pri"
+                disabled={sibuk}
+                onClick={() => void simpanPengaturan("verifikasi_admin")}
+              >
+                {sibuk ? "Menyimpan…" : "Simpan & Terapkan Verifikasi Admin"}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Form Payment Gateway */}
+        {metode === "gateway" ? (
+          <div style={{ background: "var(--surface-sunken, #f8fafc)", border: "1px solid var(--border, #e2e8f0)", borderRadius: 12, padding: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <span style={{ fontSize: 18 }}>🔑</span>
+              <div>
+                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Konfigurasi API Key & Webhook Gateway</h4>
+                <p className="p-note" style={{ margin: "2px 0 0" }}>Disimpan di database; langsung berlaku seketika tanpa redeploy Vercel</p>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+              <div>
+                <label className="f" style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600 }}>Penyedia Gateway</label>
+                <select value={gwProvider} style={{ width: "100%" }} onChange={e => setGwProvider(e.target.value)}>
+                  <option value="mayar">Mayar.id</option>
+                  <option value="midtrans">Midtrans</option>
+                  <option value="simulasi">Simulasi Dev (Uji Coba)</option>
+                </select>
+              </div>
+
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label className="f" style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600 }}>API Key Gateway</label>
+                <input
+                  type="password"
+                  value={gwApiKey}
+                  placeholder="Masukkan API Key (misal: mayar_api_key_...)"
+                  style={{ width: "100%", fontFamily: "monospace" }}
+                  onChange={e => setGwApiKey(e.target.value)}
+                />
+                <p className="p-note" style={{ margin: "4px 0 0" }}>Tersimpan secara terproteksi dan tidak pernah dikirim ke client publik</p>
+              </div>
+
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label className="f" style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600 }}>Webhook Token / Rahasia Tanda Tangan</label>
+                <input
+                  type="password"
+                  value={gwWebhookToken}
+                  placeholder="Masukkan Webhook Token / Secret"
+                  style={{ width: "100%", fontFamily: "monospace" }}
+                  onChange={e => setGwWebhookToken(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginTop: 18, display: "flex", gap: 10, alignItems: "center" }}>
+              <button
+                type="button"
+                className="btn pri"
+                disabled={sibuk}
+                onClick={() => void simpanPengaturan("gateway")}
+              >
+                {sibuk ? "Menyimpan…" : "Simpan & Terapkan Payment Gateway"}
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </Panel>
   );
 }

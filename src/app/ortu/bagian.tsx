@@ -56,7 +56,52 @@ interface Riwayat {
   waktu: string; device: string | null; offline: boolean; direfund_rp: number | null;
 }
 
+interface TopupInfo {
+  metode: "verifikasi_admin" | "gateway";
+  bank: {
+    nama: string;
+    rekening: string;
+    atas_nama: string;
+    petunjuk: string;
+  };
+  topup_min_rp: number;
+  topup_max_rp: number;
+}
+
 const NOMINAL = [50000, 100000, 200000, 300000, 500000];
+
+function kompresGambar(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let { width, height } = img;
+        const maxDim = 1200;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(e.target?.result as string);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.75));
+      };
+      img.onerror = () => reject(new Error("Gagal membaca file gambar"));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error("Gagal membaca file"));
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function Bagian() {
   const { data, galat, sedang, muatUlang } = useMuat<{ anak: Anak[] }>("/api/ortu/anak");
@@ -70,6 +115,14 @@ export default function Bagian() {
   const [nominal, setNominal] = useState(100000);
   const [invoice, setInvoice] = useState<{ url: string; topup_id: number; gateway: string } | null>(null);
   const [limitBaru, setLimitBaru] = useState("");
+
+  // State Top-up Verifikasi Manual
+  const [topupInfo, setTopupInfo] = useState<TopupInfo | null>(null);
+  const [buktiFoto, setBuktiFoto] = useState<string | null>(null);
+  const [catatanWali, setCatatanWali] = useState("");
+  const [suksesTransfer, setSuksesTransfer] = useState(false);
+  const [salinSukses, setSalinSukses] = useState(false);
+  const [sedangKompres, setSedangKompres] = useState(false);
 
   // Jendela PO dimuat saat halaman dibuka, bukan saat "Lihat menu" ditekan —
   // tombol "Batalkan" di daftar pesanan butuh JAM tutup PO, bukan hanya
@@ -113,7 +166,42 @@ export default function Bagian() {
   }, [idAnak, bulan, muatRiwayat]);
 
   async function bukaTopup() {
-    setPesan(""); setGagal(false); setInvoice(null); setLembar("topup");
+    setPesan(""); setGagal(false); setInvoice(null); setSuksesTransfer(false);
+    setBuktiFoto(null); setCatatanWali(""); setLembar("topup");
+    const r = await api<TopupInfo>("/api/ortu/topup-info");
+    if (r.ok) setTopupInfo(r.data!);
+  }
+
+  async function kirimTransferManual() {
+    if (!a) return;
+    if (!buktiFoto) {
+      setPesan("Silakan pilih atau foto bukti transfer terlebih dahulu.");
+      setGagal(true);
+      return;
+    }
+    setSibuk(true); setPesan(""); setGagal(false);
+    const r = await api<{ topup_id: number; status: string }>(
+      `/api/ortu/anak/${a.siswa.id}/topup`,
+      {
+        metode: "POST",
+        body: {
+          nominal_rp: nominal,
+          metode: "verifikasi_admin",
+          bukti_foto: buktiFoto,
+          catatan: catatanWali.trim() || undefined,
+        },
+      }
+    );
+    setSibuk(false);
+    if (!r.ok) {
+      setGagal(true);
+      setPesan(r.pesan ?? "Gagal mengirim bukti transfer");
+      return;
+    }
+    setSuksesTransfer(true);
+    setPesan(`Permintaan top-up ${rp(nominal)} berhasil dikirim! Menunggu verifikasi staf keuangan.`);
+    await muatUlang();
+    if (idAnak !== undefined) void muatRiwayat(idAnak, bulan);
   }
 
   async function buatTopup() {
@@ -305,42 +393,240 @@ export default function Bagian() {
 
         {lembar === "topup" ? (
           <div className="pcard">
-            <h2>Isi saldo</h2>
-            {invoice ? (
-              <>
-                {invoice.gateway === "simulasi" ? (
-                  <div className="stat-hilang" style={{ marginBottom: 12 }}>
-                    💡 <b>Mode Uji Coba:</b> Sekolah saat ini menggunakan gateway pembayaran <b>simulasi</b>. Klik tombol <b>Buka halaman pembayaran</b> di bawah untuk menyelesaikan simulasi pembayaran agar saldo langsung bertambah.
+            <h2>Isi saldo {s.nama}</h2>
+
+            {/* Jika mode verifikasi admin (transfer manual) */}
+            {(!topupInfo || topupInfo.metode === "verifikasi_admin") ? (
+              suksesTransfer ? (
+                <div style={{ textAlign: "center", padding: "12px 0" }}>
+                  <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
+                  <h3 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 700 }}>Bukti Transfer Berhasil Dikirim</h3>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: "var(--brand-pri, #10b981)", marginBottom: 12 }}>
+                    {rp(nominal)}
                   </div>
-                ) : null}
-                <p style={{ fontSize: 13.5 }}>
-                  Tagihan {rp(nominal)} dibuat. Buka halaman pembayaran, selesaikan, lalu tekan
-                  &ldquo;Cek status&rdquo;.
-                </p>
-                <a className="btn pri blok" href={invoice.url} target="_blank" rel="noreferrer">
-                  Buka halaman pembayaran
-                </a>
-                <button type="button" className="btn blok" style={{ marginTop: 8 }} disabled={sibuk}
-                  onClick={() => void cekTopup()}>{sibuk ? "Memeriksa…" : "Cek status"}</button>
-                <p className="p-note" style={{ marginTop: 10 }}>
-                  Saldo bertambah setelah pembayaran dikonfirmasi penyedia pembayaran, bukan saat
-                  Anda menekan bayar. Kalau uang sudah terpotong tapi saldo belum bertambah dalam
-                  15 menit, hubungi TU dengan menyebut nomor tagihan.
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="t-items">
-                  {NOMINAL.map(n => (
-                    <button key={n} type="button" className={nominal === n ? "on" : undefined}
-                      onClick={() => setNominal(n)}>{rp(n)}</button>
-                  ))}
+                  <div className="stat-hilang" style={{ textAlign: "left", marginBottom: 16 }}>
+                    ⏳ <b>Status: Menunggu Verifikasi Admin</b>
+                    <br />
+                    Staf Keuangan/TU akan memeriksa bukti transfer dan mutasi bank. Saldo siswa akan otomatis bertambah setelah disetujui.
+                  </div>
+                  <button type="button" className="btn pri blok" onClick={() => { setLembar(null); setSuksesTransfer(false); }}>
+                    Selesai & Tutup
+                  </button>
                 </div>
-                <button type="button" className="btn pri blok" style={{ marginTop: 12 }} disabled={sibuk}
-                  onClick={() => void buatTopup()}>{sibuk ? "Memproses…" : `Isi ${rp(nominal)}`}</button>
-                <button type="button" className="btn blok" style={{ marginTop: 8 }}
-                  onClick={() => setLembar(null)}>Batal</button>
-              </>
+              ) : (
+                <>
+                  <p style={{ fontSize: 13.5, color: "#475569", margin: "0 0 12px" }}>
+                    Pilih nominal, transfer ke rekening sekolah, lalu unggah foto bukti transfer di bawah.
+                  </p>
+
+                  {/* Pilihan Nominal */}
+                  <div className="t-items">
+                    {NOMINAL.map(n => (
+                      <button key={n} type="button" className={nominal === n ? "on" : undefined}
+                        onClick={() => setNominal(n)}>{rp(n)}</button>
+                    ))}
+                  </div>
+
+                  {/* Rekening Bank Tujuan Card */}
+                  <div style={{
+                    background: "var(--surface-sunken, #f8fafc)",
+                    border: "1px solid var(--border, #e2e8f0)",
+                    borderRadius: 12,
+                    padding: 14,
+                    marginTop: 14,
+                    marginBottom: 14,
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Tujuan Transfer
+                      </span>
+                      <span className="badge info">{topupInfo?.bank.nama || "Bank Central Asia (BCA)"}</span>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", padding: "10px 12px", borderRadius: 8, border: "1px solid #cbd5e1", marginTop: 4 }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: "#64748b" }}>Nomor Rekening:</div>
+                        <div style={{ fontSize: 17, fontWeight: 800, fontFamily: "monospace", letterSpacing: 1 }}>
+                          {topupInfo?.bank.rekening || "8230918239"}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn sm"
+                        style={{ padding: "4px 10px", fontSize: 12 }}
+                        onClick={() => {
+                          const rek = topupInfo?.bank.rekening || "8230918239";
+                          void navigator.clipboard?.writeText(rek);
+                          setSalinSukses(true);
+                          setTimeout(() => setSalinSukses(false), 2000);
+                        }}
+                      >
+                        {salinSukses ? "✓ Tersalin!" : "📋 Salin"}
+                      </button>
+                    </div>
+
+                    <div style={{ marginTop: 8, fontSize: 12.5, color: "#334155" }}>
+                      Atas Nama: <b>{topupInfo?.bank.atas_nama || "Yayasan Semesta Smart Campus"}</b>
+                    </div>
+
+                    {topupInfo?.bank.petunjuk ? (
+                      <div className="p-note" style={{ marginTop: 6, fontSize: 12, fontStyle: "italic" }}>
+                        ℹ️ {topupInfo.bank.petunjuk}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Unggah Bukti Pembayaran */}
+                  <div style={{ marginBottom: 14 }}>
+                    <label className="f" style={{ display: "block", marginBottom: 6, fontWeight: 600, fontSize: 13 }}>
+                      Unggah Bukti Transfer / Struk <span style={{ color: "#ef4444" }}>*</span>
+                    </label>
+
+                    {buktiFoto ? (
+                      <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, background: "#f8fafc", textAlign: "center" }}>
+                        <img
+                          src={buktiFoto}
+                          alt="Pratinjau struk"
+                          style={{ maxHeight: 180, maxWidth: "100%", borderRadius: 6, display: "inline-block", objectFit: "contain" }}
+                        />
+                        <div style={{ marginTop: 8 }}>
+                          <label className="btn sm" style={{ cursor: "pointer", display: "inline-block" }}>
+                            📷 Ganti Foto Bukti
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: "none" }}
+                              onChange={async e => {
+                                const f = e.target.files?.[0];
+                                if (!f) return;
+                                setSedangKompres(true);
+                                try {
+                                  const dataUrl = await kompresGambar(f);
+                                  setBuktiFoto(dataUrl);
+                                } finally { setSedangKompres(false); }
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    ) : (
+                      <label
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "20px 14px",
+                          border: "2px dashed #cbd5e1",
+                          borderRadius: 10,
+                          cursor: "pointer",
+                          background: "#f8fafc",
+                          textAlign: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <span style={{ fontSize: 26 }}>📷</span>
+                        <b style={{ fontSize: 13.5, color: "#1e293b" }}>
+                          {sedangKompres ? "Memproses gambar…" : "Ambil Foto atau Pilih Gambar Bukti Transfer"}
+                        </b>
+                        <span className="p-note" style={{ margin: 0, fontSize: 11.5 }}>
+                          Format JPG / PNG / WEBP (otomatis dikompres)
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: "none" }}
+                          disabled={sedangKompres}
+                          onChange={async e => {
+                            const f = e.target.files?.[0];
+                            if (!f) return;
+                            setSedangKompres(true);
+                            try {
+                              const dataUrl = await kompresGambar(f);
+                              setBuktiFoto(dataUrl);
+                            } catch (err) {
+                              setPesan("Gagal memproses gambar: " + (err instanceof Error ? err.message : String(err)));
+                              setGagal(true);
+                            } finally { setSedangKompres(false); }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Catatan Tambahan (Opsional) */}
+                  <div style={{ marginBottom: 14 }}>
+                    <label className="f" htmlFor="cat-wali" style={{ display: "block", marginBottom: 4, fontSize: 12.5 }}>
+                      Catatan / Nama Pengirim (opsional)
+                    </label>
+                    <input
+                      id="cat-wali"
+                      type="text"
+                      maxLength={100}
+                      value={catatanWali}
+                      placeholder="Contoh: Transfer dari rekening Budi / m-BCA"
+                      style={{ width: "100%" }}
+                      onChange={e => setCatatanWali(e.target.value)}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn pri blok"
+                    disabled={sibuk || !buktiFoto || sedangKompres}
+                    onClick={() => void kirimTransferManual()}
+                  >
+                    {sibuk ? "Mengirim Bukti…" : `Kirim Bukti Pembayaran ${rp(nominal)}`}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn blok"
+                    style={{ marginTop: 8 }}
+                    onClick={() => setLembar(null)}
+                  >
+                    Batal
+                  </button>
+                </>
+              )
+            ) : (
+              /* Alur Payment Gateway Online */
+              invoice ? (
+                <>
+                  {invoice.gateway === "simulasi" ? (
+                    <div className="stat-hilang" style={{ marginBottom: 12 }}>
+                      💡 <b>Mode Uji Coba:</b> Sekolah saat ini menggunakan gateway pembayaran <b>simulasi</b>. Klik tombol <b>Buka halaman pembayaran</b> di bawah untuk menyelesaikan simulasi pembayaran agar saldo langsung bertambah.
+                    </div>
+                  ) : null}
+                  <p style={{ fontSize: 13.5 }}>
+                    Tagihan {rp(nominal)} dibuat. Buka halaman pembayaran, selesaikan, lalu tekan
+                    &ldquo;Cek status&rdquo;.
+                  </p>
+                  <a className="btn pri blok" href={invoice.url} target="_blank" rel="noreferrer">
+                    Buka halaman pembayaran
+                  </a>
+                  <button type="button" className="btn blok" style={{ marginTop: 8 }} disabled={sibuk}
+                    onClick={() => void cekTopup()}>{sibuk ? "Memeriksa…" : "Cek status"}</button>
+                  <p className="p-note" style={{ marginTop: 10 }}>
+                    Saldo bertambah setelah pembayaran dikonfirmasi penyedia pembayaran, bukan saat
+                    Anda menekan bayar. Kalau uang sudah terpotong tapi saldo belum bertambah dalam
+                    15 menit, hubungi TU dengan menyebut nomor tagihan.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="t-items">
+                    {NOMINAL.map(n => (
+                      <button key={n} type="button" className={nominal === n ? "on" : undefined}
+                        onClick={() => setNominal(n)}>{rp(n)}</button>
+                    ))}
+                  </div>
+                  <button type="button" className="btn pri blok" style={{ marginTop: 12 }} disabled={sibuk}
+                    onClick={() => void buatTopup()}>{sibuk ? "Memproses…" : `Isi ${rp(nominal)}`}</button>
+                  <button type="button" className="btn blok" style={{ marginTop: 8 }}
+                    onClick={() => setLembar(null)}>Batal</button>
+                </>
+              )
             )}
           </div>
         ) : null}

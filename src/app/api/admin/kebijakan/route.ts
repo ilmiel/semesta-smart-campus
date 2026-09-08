@@ -15,7 +15,21 @@ export const GET = tangani(async (req) => {
 
 export const PUT = tangani(async (req) => {
   const p = await wajibPeran(req, "admin_it", "manajemen", "keuangan");
-  const b = await bacaBody(req, v.obj({ kunci: v.str({ max: 40 }).opsional(), nilai: v.apa().opsional(), ambang_pin_rp: v.rupiah().opsional() }));
+  const b = await bacaBody(
+    req,
+    v.obj({
+      kunci: v.str({ max: 40 }).opsional(),
+      nilai: v.apa().opsional(),
+      ambang_pin_rp: v.rupiah().opsional(),
+      batch: v.arr(v.obj({ kunci: v.str({ max: 40 }), nilai: v.apa() })).opsional(),
+    })
+  );
+  if (b.batch && b.batch.length > 0) {
+    for (const item of b.batch) {
+      await skalar("kebijakan_set", [item.kunci, JSON.stringify(item.nilai), aktor(p)]);
+    }
+    return ok({ tersimpan: b.batch.length });
+  }
   if (b.ambang_pin_rp !== undefined) {
     await skalar("kebijakan_set_ambang_pin", [b.ambang_pin_rp, aktor(p)]);
     return ok({ ambang_pin_rp: b.ambang_pin_rp, limit_offline_rp: b.ambang_pin_rp });
