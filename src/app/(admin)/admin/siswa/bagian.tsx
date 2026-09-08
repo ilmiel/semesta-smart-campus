@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge, CatatanKaki, Panel } from "@/components/ui";
+import { Modal } from "@/components/modal";
 import { api } from "@/lib/api";
 import { rp } from "@/lib/format";
 
@@ -112,7 +113,7 @@ export default function Bagian() {
       {pesan && !tambah ? <div className={gagalTambah ? "a-err" : "a-ok"} style={{ marginBottom: 12 }}>{pesan}</div> : null}
 
       {tambah ? (
-        <Panel judul="Siswa baru" sub="NIS harus unik dan tidak bisa diubah setelah ada transaksi">
+        <Modal judul="Siswa baru" sub="NIS harus unik dan tidak bisa diubah setelah ada transaksi" onTutup={() => { setTambah(null); setPesan(""); }}>
           <div className="a-form">
             <div className="field">
               <label className="f" htmlFor="n-nis">NIS</label>
@@ -152,7 +153,7 @@ export default function Bagian() {
               onClick={() => void simpanBaru()}>{sibuk ? "Menyimpan…" : "Simpan"}</button>
             <button type="button" className="btn" onClick={() => { setTambah(null); setPesan(""); }}>Batal</button>
           </div>
-        </Panel>
+        </Modal>
       ) : null}
 
       <Panel judul="Cari siswa">

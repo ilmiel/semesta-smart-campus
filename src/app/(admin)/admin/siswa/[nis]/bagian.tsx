@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Badge, CatatanKaki, Panel, Tile } from "@/components/ui";
+import { Modal } from "@/components/modal";
 import { api, useMuat, waktuSingkat } from "@/lib/api";
 import { rp } from "@/lib/format";
 
@@ -138,8 +139,8 @@ export default function Bagian({ nis }: { nis: string }) {
       {pesan && !dialog ? <div className={gagal ? "a-err" : "a-ok"} style={{ marginBottom: 12 }}>{pesan}</div> : null}
 
       {rahasia ? (
-        <Panel judul="PIN sementara" sub="hanya ditampilkan sekali">
-          <div className="a-rahasia">
+        <Modal judul="PIN sementara" sub="hanya ditampilkan sekali" onTutup={() => setRahasia(null)}>
+          <div className="a-rahasia" style={{ marginTop: 0 }}>
             <div style={{ fontWeight: 600, fontSize: 13 }}>Sampaikan langsung ke siswa yang sedang berdiri di depanmu.</div>
             <code className="nilai">{rahasia}</code>
             <div className="p-note" style={{ margin: 0 }}>
@@ -149,14 +150,14 @@ export default function Bagian({ nis }: { nis: string }) {
               sempat mendengarnya bisa memakainya. Ingatkan siswa menggantinya hari itu juga.
             </div>
           </div>
-          <div className="a-aksi" style={{ marginTop: 10 }}>
-            <button type="button" className="btn" onClick={() => setRahasia(null)}>Sudah disampaikan</button>
+          <div className="a-aksi" style={{ marginTop: 14 }}>
+            <button type="button" className="btn pri" onClick={() => setRahasia(null)}>Sudah disampaikan</button>
           </div>
-        </Panel>
+        </Modal>
       ) : null}
 
       {dialog ? (
-        <Panel judul={judulDialog(dialog)}>
+        <Modal judul={judulDialog(dialog)} onTutup={() => setDialog(null)}>
           {dialog.t === "terbit" ? (
             <>
               <p style={{ margin: "0 0 10px", fontSize: 13.5 }}>
@@ -339,7 +340,7 @@ export default function Bagian({ nis }: { nis: string }) {
             </>
           )}
           {pesan ? <div className={gagal ? "a-err" : "a-ok"} style={{ marginTop: 10 }}>{pesan}</div> : null}
-        </Panel>
+        </Modal>
       ) : null}
 
       {bisaUang ? (

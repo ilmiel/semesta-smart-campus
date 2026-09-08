@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Badge, CatatanKaki, Panel } from "@/components/ui";
+import { Modal } from "@/components/modal";
 import { api, useMuat, waktuSingkat } from "@/lib/api";
 
 /**
@@ -107,8 +108,9 @@ export default function Bagian() {
       {pesan && !form ? <div className={gagal ? "a-err" : "a-ok"} style={{ marginBottom: 12 }}>{pesan}</div> : null}
 
       {form ? (
-        <Panel judul={ubahEmail ? `Ubah ${ubahEmail}` : "Staf baru"}
-          sub={ubahEmail ? "email tidak bisa diubah — buat baris baru kalau emailnya ganti" : "email akun Google Workspace sekolah"}>
+        <Modal judul={ubahEmail ? `Ubah ${ubahEmail}` : "Staf baru"}
+          sub={ubahEmail ? "email tidak bisa diubah — buat baris baru kalau emailnya ganti" : "email akun Google Workspace sekolah"}
+          onTutup={() => { setForm(null); setUbahEmail(null); setPesan(""); }}>
           <div className="a-form">
             <div className="field">
               <label className="f" htmlFor="s-email">Email</label>
@@ -165,7 +167,7 @@ export default function Bagian() {
               Batal
             </button>
           </div>
-        </Panel>
+        </Modal>
       ) : null}
 
       <Panel judul="Akun staf" sub={sedang ? "memuat…" : `${staf.filter(s => s.aktif).length} aktif · ${adminAktif} admin IT`}
