@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
+import { useIdentitas } from "@/components/IdentitasProvider";
+import LogoSekolah from "@/components/LogoSekolah";
 import { authClient } from "@/lib/auth-client";
 
 /**
@@ -74,12 +76,14 @@ export default function LoginPage() {
     setTerkirim(true);
   }
 
+  const { identitas } = useIdentitas();
+
   if (cekSesi) {
     return (
       <div className="root">
         <div className="login-wrap">
           <div className="login-card">
-            <div className="logo">S</div>
+            <LogoSekolah tipe="portrait" size={46} style={{ margin: "0 auto 12px" }} />
             <p className="p-note" style={{ textAlign: "center", margin: 0 }}>Memeriksa sesi…</p>
           </div>
         </div>
@@ -91,9 +95,18 @@ export default function LoginPage() {
     <div className="root">
       <div className="login-wrap">
         <div className="login-card">
-          <div className="logo">S</div>
-          <h1>Semesta Smart Campus</h1>
-          <div className="s">Satu akun untuk kantin, wallet, dan layanan sekolah</div>
+          {identitas.logo_landscape ? (
+            <div style={{ textAlign: "center", marginBottom: 16 }}>
+              <LogoSekolah tipe="landscape" size={50} style={{ margin: "0 auto 10px" }} />
+              <div className="s">{identitas.nama || "Satu akun untuk kantin, wallet, dan layanan sekolah"}</div>
+            </div>
+          ) : (
+            <>
+              <LogoSekolah tipe="portrait" size={46} style={{ margin: "0 auto 12px" }} />
+              <h1>{identitas.nama_singkat || "Smart Campus"}</h1>
+              <div className="s">{identitas.nama || "Satu akun untuk kantin, wallet, dan layanan sekolah"}</div>
+            </>
+          )}
 
           <button type="button" className="btn blok" style={{ gap: 10 }}
             disabled={sibuk} onClick={masukGoogle}>

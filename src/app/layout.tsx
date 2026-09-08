@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { IdentitasProvider } from "@/components/IdentitasProvider";
 import ThemeScript from "@/components/ThemeScript";
 import { ToastProvider } from "@/components/Toast";
 import { temaKeCss } from "@/lib/tema";
+import { ambilIdentitasServer } from "@/server/identitas";
 import { ambilTemaServer } from "@/server/tema";
 import "./globals.css";
 
@@ -21,22 +23,30 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Semesta Smart Campus", template: "%s · Smart Campus" },
-  description: "One Identity. One Wallet. One Platform. — Semesta Bilingual Boarding School",
+  title: { default: "Smart Campus", template: "%s · Smart Campus" },
+  description: "One Identity. One Wallet. One Platform. — Sistem Informasi Terpadu Kampus & Sekolah",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const tema = await ambilTemaServer();
+  const [tema, identitas] = await Promise.all([
+    ambilTemaServer(),
+    ambilIdentitasServer(),
+  ]);
   const temaCss = temaKeCss(tema);
 
   return (
     <html lang="id" className={`${plexSans.variable} ${plexMono.variable}`}>
       <head>
         <style id="smartcampus-tema-css" dangerouslySetInnerHTML={{ __html: temaCss }} />
+        {identitas.logo_portrait ? (
+          <link rel="icon" href={identitas.logo_portrait} />
+        ) : null}
       </head>
       <body>
-        <ThemeScript initialTheme={tema} />
-        <ToastProvider>{children}</ToastProvider>
+        <IdentitasProvider initialIdentitas={identitas}>
+          <ThemeScript initialTheme={tema} />
+          <ToastProvider>{children}</ToastProvider>
+        </IdentitasProvider>
       </body>
     </html>
   );

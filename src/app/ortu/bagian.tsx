@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useIdentitas } from "@/components/IdentitasProvider";
 import KeluarButton from "@/components/KeluarButton";
+import LogoSekolah from "@/components/LogoSekolah";
 import { api, useMuat, waktuSingkat } from "@/lib/api";
 import { rp } from "@/lib/format";
 
@@ -325,6 +327,7 @@ export default function Bagian() {
   const s = a.siswa;
   const lim = a.limit;
   const sisa = lim ? Math.max(lim.limit_harian_rp - lim.terpakai_rp, 0) : null;
+  const { identitas } = useIdentitas();
   const totalPO = jendela ? jendela.menu.reduce((t, m) => t + (qty[m.id] ?? 0) * m.harga_rp, 0) : 0;
 
   return (
@@ -332,9 +335,9 @@ export default function Bagian() {
       <div className="p-top">
         <div className="inner">
           <div className="bar">
-            <div className="logo">S</div>
+            <LogoSekolah tipe="portrait" size={32} />
             <div className="t">
-              <b>Smart Campus</b>
+              <b>{identitas.nama_singkat || "Smart Campus"}</b>
               <small>Portal Orang Tua{saya ? ` · ${saya.nama}` : ""}</small>
             </div>
             <span style={{ marginLeft: "auto" }}><KeluarButton ringkas /></span>

@@ -4,6 +4,9 @@ import { useState } from "react";
 import { CatatanKaki, Panel } from "@/components/ui";
 import { api, useMuat, waktuSingkat } from "@/lib/api";
 import { rp } from "@/lib/format";
+import { useIdentitas } from "@/components/IdentitasProvider";
+import LogoSekolah from "@/components/LogoSekolah";
+import { DEFAULT_IDENTITAS, kompresLogo } from "@/lib/identitas";
 import {
   PRESET_TEMA,
   TEMA_DEFAULT,
@@ -80,11 +83,25 @@ const KUNCI_TOPUP = [
   "gateway_webhook_token",
 ];
 
+const KUNCI_IDENTITAS = [
+  "sekolah_nama",
+  "sekolah_nama_singkat",
+  "sekolah_logo_portrait",
+  "sekolah_logo_landscape",
+];
+
 export default function Bagian() {
   const { data, galat, sedang, muatUlang } = useMuat<{ kebijakan: Kebijakan[] }>("/api/admin/kebijakan");
   const semua = data?.kebijakan ?? [];
   const peta = new Map(semua.map(k => [k.kunci, k]));
-  const dipakai = new Set(KELOMPOK.flatMap(g => g.kunci).concat("limit_offline_rp", KUNCI_TOPUP, "tema_warna"));
+  const dipakai = new Set(
+    KELOMPOK.flatMap(g => g.kunci).concat(
+      "limit_offline_rp",
+      KUNCI_TOPUP,
+      "tema_warna",
+      KUNCI_IDENTITAS
+    )
+  );
   const sisa = semua.filter(k => !dipakai.has(k.kunci));
 
   return (
@@ -93,7 +110,7 @@ export default function Bagian() {
         <div>
           <h1>Kebijakan</h1>
           <div className="sub">
-            Angka yang mengatur uang, PIN, batas layanan, dan tema tampilan sistem. Berlaku
+            Angka yang mengatur uang, PIN, batas layanan, tema tampilan, dan identitas sekolah. Berlaku
             seketika untuk semua terminal dan portal.
           </div>
         </div>
@@ -105,6 +122,7 @@ export default function Bagian() {
       {galat ? <div className="demo" style={{ borderColor: "var(--crit)" }}>{galat}</div> : null}
       {sedang && semua.length === 0 ? <p className="p-note">Memuat kebijakan…</p> : null}
 
+      <PanelIdentitasSekolah peta={peta} selesai={muatUlang} />
       <PanelTemaWarna peta={peta} selesai={muatUlang} />
       <PanelMetodeTopup peta={peta} selesai={muatUlang} />
 
@@ -802,4 +820,406 @@ function PanelTemaWarna({ peta, selesai }: { peta: Map<string, Kebijakan>; seles
     </Panel>
   );
 }
+
+/**
+ * Panel Konfigurasi Nama & Logo Sekolah (Portrait & Landscape)
+ */
+function PanelIdentitasSekolah({
+  peta,
+  selesai,
+}: {
+  peta: Map<string, Kebijakan>;
+  selesai: () => Promise<void>;
+}) {
+  const { setIdentitas } = useIdentitas();
+
+  const namaAwal =
+    (peta.get("sekolah_nama")?.nilai as string) || DEFAULT_IDENTITAS.nama;
+  const namaSingkatAwal =
+    (peta.get("sekolah_nama_singkat")?.nilai as string) || DEFAULT_IDENTITAS.nama_singkat;
+  const logoPortraitAwal =
+    (peta.get("sekolah_logo_portrait")?.nilai as string) || null;
+  const logoLandscapeAwal =
+    (peta.get("sekolah_logo_landscape")?.nilai as string) || null;
+
+  const [nama, setNama] = useState(namaAwal);
+  const [namaSingkat, setNamaSingkat] = useState(namaSingkatAwal);
+  const [logoPortrait, setLogoPortrait] = useState<string | null>(logoPortraitAwal);
+  const [logoLandscape, setLogoLandscape] = useState<string | null>(logoLandscapeAwal);
+
+  const [sedangKompresP, setSedangKompresP] = useState(false);
+  const [sedangKompresL, setSedangKompresL] = useState(false);
+  const [sibuk, setSibuk] = useState(false);
+  const [pesan, setPesan] = useState("");
+  const [gagal, setGagal] = useState(false);
+
+  const adaPerubahan =
+    nama !== namaAwal ||
+    namaSingkat !== namaSingkatAwal ||
+    logoPortrait !== logoPortraitAwal ||
+    logoLandscape !== logoLandscapeAwal;
+
+  async function uploadLogo(file: File, tipe: "portrait" | "landscape") {
+    setPesan("");
+    setGagal(false);
+    if (tipe === "portrait") setSedangKompresP(true);
+    else setSedangKompresL(true);
+
+    try {
+      const dataUrl = await kompresLogo(file, tipe);
+      if (tipe === "portrait") {
+        setLogoPortrait(dataUrl);
+      } else {
+        setLogoLandscape(dataUrl);
+      }
+    } catch (err) {
+      setGagal(true);
+      setPesan("Gagal memproses gambar: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      if (tipe === "portrait") setSedangKompresP(false);
+      else setSedangKompresL(false);
+    }
+  }
+
+  async function simpanIdentitas() {
+    setSibuk(true);
+    setPesan("");
+    setGagal(false);
+
+    const r = await api("/api/admin/kebijakan", {
+      metode: "PUT",
+      body: {
+        batch: [
+          { kunci: "sekolah_nama", nilai: nama.trim() || DEFAULT_IDENTITAS.nama },
+          { kunci: "sekolah_nama_singkat", nilai: namaSingkat.trim() || DEFAULT_IDENTITAS.nama_singkat },
+          { kunci: "sekolah_logo_portrait", nilai: logoPortrait },
+          { kunci: "sekolah_logo_landscape", nilai: logoLandscape },
+        ],
+      },
+    });
+
+    setSibuk(false);
+    if (!r.ok) {
+      setGagal(true);
+      setPesan(r.pesan ?? "Gagal menyimpan identitas sekolah");
+      return;
+    }
+
+    const dataBaru = {
+      nama: nama.trim() || DEFAULT_IDENTITAS.nama,
+      nama_singkat: namaSingkat.trim() || DEFAULT_IDENTITAS.nama_singkat,
+      logo_portrait: logoPortrait,
+      logo_landscape: logoLandscape,
+    };
+    setIdentitas(dataBaru);
+
+    setPesan("Nama dan logo sekolah berhasil disimpan dan diterapkan ke seluruh sistem!");
+    await selesai();
+  }
+
+  function batalkanPerubahan() {
+    setNama(namaAwal);
+    setNamaSingkat(namaSingkatAwal);
+    setLogoPortrait(logoPortraitAwal);
+    setLogoLandscape(logoLandscapeAwal);
+    setPesan("");
+  }
+
+  return (
+    <Panel
+      judul="Identitas & Logo Sekolah"
+      sub="Atur nama resmi, nama brand, serta logo portrait (kotak) dan logo landscape (banner) untuk seluruh aplikasi"
+    >
+      <div style={{ padding: "4px 0 12px" }}>
+        {pesan ? (
+          <div className={gagal ? "a-err" : "a-ok"} style={{ marginBottom: 16 }}>
+            {pesan}
+          </div>
+        ) : null}
+
+        {/* Form Nama Sekolah */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, marginBottom: 18 }}>
+          <div>
+            <label className="f" style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600 }}>
+              Nama Resmi Sekolah / Yayasan
+            </label>
+            <input
+              type="text"
+              value={nama}
+              placeholder="Contoh: Semesta Bilingual Boarding School"
+              style={{ width: "100%" }}
+              onChange={(e) => setNama(e.target.value)}
+            />
+            <p className="p-note" style={{ margin: "4px 0 0" }}>
+              Digunakan pada dokumen, laporan transaksi, dan nama lengkap yayasan
+            </p>
+          </div>
+
+          <div>
+            <label className="f" style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600 }}>
+              Nama Singkat / Brand Aplikasi
+            </label>
+            <input
+              type="text"
+              value={namaSingkat}
+              placeholder="Contoh: Smart Campus / Semesta BBS"
+              style={{ width: "100%" }}
+              onChange={(e) => setNamaSingkat(e.target.value)}
+            />
+            <p className="p-note" style={{ margin: "4px 0 0" }}>
+              Tampil di header portal orang tua, portal siswa, dan sidebar admin
+            </p>
+          </div>
+        </div>
+
+        {/* Upload Logo Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16, marginBottom: 18 }}>
+          {/* Kolom 1: Logo Portrait */}
+          <div
+            style={{
+              background: "var(--surface-sunken, #f8fafc)",
+              border: "1px solid var(--border, #e2e8f0)",
+              borderRadius: 12,
+              padding: 16,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div>
+                <b style={{ fontSize: 14, display: "block" }}>Logo Portrait / Kotak (1:1)</b>
+                <span className="p-note" style={{ fontSize: 11.5 }}>
+                  Untuk icon header portal, favicon, dan avatar sekolah
+                </span>
+              </div>
+              <span className="badge info" style={{ fontSize: 10 }}>1:1 / Kotak</span>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "12px 0" }}>
+              <div
+                style={{
+                  width: 76,
+                  height: 76,
+                  borderRadius: 12,
+                  border: "1.5px dashed var(--rule)",
+                  background: "#fff",
+                  display: "grid",
+                  placeItems: "center",
+                  overflow: "hidden",
+                  flex: "none",
+                }}
+              >
+                {logoPortrait ? (
+                  <img
+                    src={logoPortrait}
+                    alt="Logo Portrait"
+                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                  />
+                ) : (
+                  <div
+                    className="logo"
+                    style={{ width: 44, height: 44, borderRadius: 10, fontSize: 20 }}
+                  >
+                    {(namaSingkat || "S").charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+                <label className="btn sm pri" style={{ cursor: "pointer", textAlign: "center", width: "fit-content" }}>
+                  {sedangKompresP ? "Memproses…" : logoPortrait ? "📷 Ganti Logo Portrait" : "⬆ Unggah Logo Portrait"}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    style={{ display: "none" }}
+                    disabled={sedangKompresP}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void uploadLogo(f, "portrait");
+                    }}
+                  />
+                </label>
+
+                {logoPortrait ? (
+                  <button
+                    type="button"
+                    className="btn sm danger"
+                    style={{ width: "fit-content" }}
+                    onClick={() => setLogoPortrait(null)}
+                  >
+                    🗑 Hapus Logo
+                  </button>
+                ) : null}
+
+                <span className="p-note" style={{ fontSize: 11 }}>
+                  Disarankan PNG transparan atau SVG/JPG maks 400x400 px
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Kolom 2: Logo Landscape */}
+          <div
+            style={{
+              background: "var(--surface-sunken, #f8fafc)",
+              border: "1px solid var(--border, #e2e8f0)",
+              borderRadius: 12,
+              padding: 16,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div>
+                <b style={{ fontSize: 14, display: "block" }}>Logo Landscape (Horizontal / Banner)</b>
+                <span className="p-note" style={{ fontSize: 11.5 }}>
+                  Untuk header sidebar admin dan kartu halaman login
+                </span>
+              </div>
+              <span className="badge info" style={{ fontSize: 10 }}>Horizontal</span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, margin: "12px 0" }}>
+              <div
+                style={{
+                  width: "100%",
+                  height: 76,
+                  borderRadius: 12,
+                  border: "1.5px dashed var(--rule)",
+                  background: "#fff",
+                  display: "grid",
+                  placeItems: "center",
+                  overflow: "hidden",
+                  padding: "6px 12px",
+                }}
+              >
+                {logoLandscape ? (
+                  <img
+                    src={logoLandscape}
+                    alt="Logo Landscape"
+                    style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "contain" }}
+                  />
+                ) : (
+                  <div style={{ color: "var(--ink-3)", fontSize: 12.5, fontStyle: "italic" }}>
+                    Belum ada logo landscape (menggunakan format portrait + teks)
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <label className="btn sm pri" style={{ cursor: "pointer" }}>
+                  {sedangKompresL ? "Memproses…" : logoLandscape ? "📷 Ganti Logo Landscape" : "⬆ Unggah Logo Landscape"}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    style={{ display: "none" }}
+                    disabled={sedangKompresL}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void uploadLogo(f, "landscape");
+                    }}
+                  />
+                </label>
+
+                {logoLandscape ? (
+                  <button
+                    type="button"
+                    className="btn sm danger"
+                    onClick={() => setLogoLandscape(null)}
+                  >
+                    🗑 Hapus Logo
+                  </button>
+                ) : null}
+
+                <span className="p-note" style={{ fontSize: 11 }}>
+                  Disarankan rasio 3:1 atau 4:1 dengan latar transparan
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Pratinjau Tampilan Header Langsung */}
+        <div
+          style={{
+            border: "1px solid var(--rule)",
+            borderRadius: 12,
+            padding: 16,
+            background: "var(--surface)",
+            marginBottom: 18,
+          }}
+        >
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink-2)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 }}>
+            Pratinjau Langsung Komponen Header
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
+            {/* Pratinjau Sidebar Header */}
+            <div style={{ background: "var(--side-bg)", color: "var(--side-ink)", padding: "14px 16px", borderRadius: 10 }}>
+              <div style={{ fontSize: 10.5, color: "var(--side-ink-2)", textTransform: "uppercase", marginBottom: 6, letterSpacing: 0.5 }}>
+                Tampilan Sidebar Admin
+              </div>
+              {logoLandscape ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <img src={logoLandscape} alt="Preview Landscape" style={{ maxHeight: 38, maxWidth: 200, objectFit: "contain" }} />
+                  <small style={{ color: "var(--side-ink-2)", fontSize: 11 }}>Portal Manajemen Admin</small>
+                </div>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {logoPortrait ? (
+                    <img src={logoPortrait} alt="Preview Portrait" style={{ width: 34, height: 34, borderRadius: 8, objectFit: "contain" }} />
+                  ) : (
+                    <div className="logo" style={{ width: 34, height: 34 }}>{(namaSingkat || "S").charAt(0).toUpperCase()}</div>
+                  )}
+                  <div>
+                    <b style={{ fontSize: 14, display: "block" }}>{namaSingkat || "Smart Campus"}</b>
+                    <small style={{ color: "var(--side-ink-2)", fontSize: 11 }}>{nama || "Admin"}</small>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Pratinjau Portal Header */}
+            <div style={{ background: "var(--side-bg)", color: "var(--side-ink)", padding: "14px 16px", borderRadius: 10 }}>
+              <div style={{ fontSize: 10.5, color: "var(--side-ink-2)", textTransform: "uppercase", marginBottom: 6, letterSpacing: 0.5 }}>
+                Tampilan Portal Ortu &amp; Siswa
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {logoPortrait ? (
+                  <img src={logoPortrait} alt="Preview Portrait" style={{ width: 32, height: 32, borderRadius: 8, objectFit: "contain" }} />
+                ) : (
+                  <div className="logo" style={{ width: 32, height: 32 }}>{(namaSingkat || "S").charAt(0).toUpperCase()}</div>
+                )}
+                <div>
+                  <b style={{ fontSize: 13.5, display: "block" }}>{namaSingkat || "Smart Campus"}</b>
+                  <small style={{ color: "var(--side-ink-2)", fontSize: 11 }}>Portal Orang Tua · Contoh</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tombol Simpan Identitas */}
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="btn pri"
+            disabled={sibuk || sedangKompresP || sedangKompresL}
+            onClick={() => void simpanIdentitas()}
+          >
+            {sibuk ? "Menyimpan Identitas…" : "💾 Simpan & Terapkan Identitas Sekolah"}
+          </button>
+
+          {adaPerubahan ? (
+            <button
+              type="button"
+              className="btn"
+              disabled={sibuk}
+              onClick={batalkanPerubahan}
+            >
+              ↩ Kembalikan ke Semula
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 
