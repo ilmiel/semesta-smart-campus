@@ -33,7 +33,7 @@ export const GET = tangani(async (req) => {
       SELECT w.id, w.nama, w.hubungan, w.whatsapp, w.email, w.utama,
              s.id AS siswa_id, s.nis AS siswa_nis, s.nama AS siswa_nama, s.kelas AS siswa_kelas
       FROM wali w
-      JOIN siswa s ON s.id = w.siswa_id
+      JOIN v_siswa s ON s.id = w.siswa_id
       WHERE s.status <> 'keluar'
       ORDER BY w.nama, s.nama
     `),
