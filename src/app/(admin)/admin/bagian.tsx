@@ -88,6 +88,7 @@ interface Jam {
 interface Isi {
   kpi: Kpi;
   per_jam: Jam[];
+  per_jam_7_hari?: Jam[];
   transaksi_terakhir: Transaksi[];
   perhatian: {
     antrian_ditolak: Ditolak[];
@@ -153,7 +154,7 @@ export default function Bagian() {
   const offlineCount = Math.max(0, k.device_total - k.device_online);
   const terminalPercent = Math.round((onlineCount / totalDevice) * 100);
 
-  // Perhitungan data jam untuk chart dari data riil v_transaksi_per_jam
+  // Perhitungan data jam untuk chart dari data riil v_transaksi_per_jam (Hari Ini atau 7 Hari)
   const jamSlots = [
     { label: "06:00", start: 6, end: 8 },
     { label: "09:00", start: 9, end: 11 },
@@ -163,8 +164,10 @@ export default function Bagian() {
     { label: "21:00", start: 21, end: 23 },
   ];
 
+  const activePerJam = periodeChart === "7_hari" ? (data.per_jam_7_hari || []) : (data.per_jam || []);
+
   const chartBars = jamSlots.map((slot) => {
-    const matching = (data.per_jam || []).filter(
+    const matching = activePerJam.filter(
       (j) => Number(j.jam) >= slot.start && Number(j.jam) <= slot.end
     );
     const hits = matching.reduce((acc, curr) => acc + Number(curr.jumlah || 0), 0);
@@ -381,7 +384,7 @@ export default function Bagian() {
             </div>
 
             {/* Custom Bar Graph Visualization */}
-            <div className="relative h-44 flex items-end justify-between gap-3 px-2 pt-8 pb-2">
+            <div className="relative h-44 flex items-end justify-between gap-3 px-2 pt-6 pb-2">
               {/* Grid line guides */}
               <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-40">
                 <div className="border-b border-dashed border-slate-200 w-full h-0"></div>
@@ -392,34 +395,38 @@ export default function Bagian() {
 
               {chartBars.map((bar) => {
                 const isPeak = bar.hits > 0 && bar.hits === peakSlot.hits;
+                // Height calculation relative to the inner 112px container
                 const pct =
                   bar.hits > 0
-                    ? Math.max(30, Math.round((bar.hits / maxHits) * 88))
-                    : 8;
+                    ? Math.max(25, Math.round((bar.hits / maxHits) * 100))
+                    : 6;
 
                 return (
-                  <div key={bar.label} className="flex-1 flex flex-col items-center gap-1.5 z-10 relative group">
+                  <div key={bar.label} className="flex-1 h-full flex flex-col items-center justify-end gap-1.5 z-10 relative group">
                     {/* Peak Badge */}
                     {isPeak && (
-                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#133e2f] text-emerald-300 text-[9px] font-bold px-1.5 py-0.5 rounded-md whitespace-nowrap shadow-xs">
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#133e2f] text-emerald-300 text-[9px] font-bold px-1.5 py-0.5 rounded-md whitespace-nowrap shadow-xs z-20">
                         +{bar.hits} peak
                       </div>
                     )}
-                    <div
-                      style={{ height: `${pct}%` }}
-                      className={`w-full max-w-[28px] rounded-t-lg transition-all ${
-                        bar.hits > 0
-                          ? isPeak
-                            ? "bg-[#133e2f] shadow-sm ring-2 ring-emerald-500/20"
-                            : "bg-emerald-400 group-hover:bg-emerald-500"
-                          : "bg-slate-200/70 group-hover:bg-slate-300"
-                      }`}
-                      title={`${bar.label} (Pkl ${bar.start}:00–${bar.end}:59): ${bar.hits} transaksi${
-                        bar.nominal > 0 ? ` (${rp(bar.nominal)})` : ""
-                      }`}
-                    />
+                    {/* Bar box with explicit height */}
+                    <div className="w-full flex items-end justify-center h-28">
+                      <div
+                        style={{ height: `${pct}%` }}
+                        className={`w-full max-w-[28px] rounded-t-lg transition-all duration-300 ${
+                          bar.hits > 0
+                            ? isPeak
+                              ? "bg-[#133e2f] shadow-sm ring-2 ring-emerald-500/20"
+                              : "bg-emerald-400 group-hover:bg-emerald-500"
+                            : "bg-slate-200/70 group-hover:bg-slate-300"
+                        }`}
+                        title={`${bar.label} (Pkl ${bar.start}:00–${bar.end}:59): ${bar.hits} transaksi${
+                          bar.nominal > 0 ? ` (${rp(bar.nominal)})` : ""
+                        }`}
+                      />
+                    </div>
                     <span
-                      className={`text-[10px] font-mono ${
+                      className={`text-[10px] font-mono shrink-0 ${
                         isPeak
                           ? "text-[#133e2f] font-bold"
                           : bar.hits > 0
@@ -441,7 +448,9 @@ export default function Bagian() {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span className="text-[11px]">
                 {totalHits > 0
-                  ? `${totalHits} transaksi tap kartu hari ini`
+                  ? periodeChart === "7_hari"
+                    ? `${totalHits} transaksi tap kartu dalam 7 hari terakhir`
+                    : `${totalHits} transaksi tap kartu hari ini`
                   : "Respon terminal normal: 12ms"}
               </span>
             </div>

@@ -5,9 +5,16 @@ import { punyaPeran, wajibPeran } from "@/server/sesi";
 
 export const GET = tangani(async (req) => {
   const p = await wajibPeran(req);
-  const [kpi, perJam, terakhir, perhatian] = await Promise.all([
+  const [kpi, perJam, perJam7Hari, terakhir, perhatian] = await Promise.all([
     fnSatu("kpi_beranda", []),
     q(`SELECT * FROM v_transaksi_per_jam`),
+    q(`SELECT extract(hour FROM (waktu_terminal AT TIME ZONE 'Asia/Jakarta'))::int AS jam,
+              COUNT(*)::int AS jumlah,
+              SUM(total_rp)::int AS nilai_rp
+         FROM transaksi
+        WHERE jenis = 'belanja' AND status = 'selesai'
+          AND waktu_terminal >= (NOW() - INTERVAL '7 days')
+        GROUP BY 1 ORDER BY 1`),
     // Kolom `waktu` view ini sudah digeser ke jam dinding WIB dan bertipe
     // timestamp TANPA zona — bentuk yang tepat untuk CSV, menyesatkan untuk
     // layar yang akan mengonversinya lagi ke zona sekolah. Dikembalikan ke
@@ -26,6 +33,7 @@ export const GET = tangani(async (req) => {
   return ok({
     kpi: uang ? kpi : { ...kpi, omzet_hari_ini_rp: null, total_float_rp: null, topup_hari_ini_rp: null },
     per_jam: perJam,
+    per_jam_7_hari: perJam7Hari,
     transaksi_terakhir: uang ? terakhir : [],
     // Audit §2.6: UID kartu adalah kredensial (di bawah ambang PIN, bayar()
     // cukup dengan UID). Hanya peran yang memang mengurus kartu & uang.
