@@ -35,8 +35,27 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const temaCss = temaKeCss(tema);
 
   return (
-    <html lang="id" className={`${plexSans.variable} ${plexMono.variable}`}>
+    <html lang="id" suppressHydrationWarning className={`${plexSans.variable} ${plexMono.variable}`}>
       <head>
+        <script
+          id="smartcampus-mode-script"
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  try {
+    var mode = localStorage.getItem("smartcampus_mode") || "light";
+    if (mode === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.setAttribute("data-theme", "light");
+      document.documentElement.classList.remove("dark");
+    }
+  } catch (e) {}
+})();
+            `,
+          }}
+        />
         <style id="smartcampus-tema-css" dangerouslySetInnerHTML={{ __html: temaCss }} />
         {identitas.logo_portrait ? (
           <link rel="icon" href={identitas.logo_portrait} />

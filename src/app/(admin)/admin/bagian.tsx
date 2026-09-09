@@ -200,22 +200,22 @@ export default function Bagian() {
       {/* 1. GREETING BAR & QUICK ACTIONS                              */}
       {/* ============================================================ */}
       <section
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 lg:px-6 lg:py-4 rounded-2xl border border-slate-200/80 shadow-xs"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-[#121c17] p-4 lg:px-6 lg:py-4 rounded-2xl border border-slate-200/80 dark:border-[#1e2e26] shadow-xs transition-colors duration-150"
         data-purpose="dashboard-greeting-bar"
       >
         <div>
-          <h1 className="text-xl lg:text-2xl font-bold text-slate-900 tracking-tight">
-            Selamat Datang, <span className="text-[#133e2f]">Pak Ilmi</span>
+          <h1 className="text-xl lg:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            Selamat Datang, <span className="text-[#133e2f] dark:text-emerald-400">Pak Ilmi</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Sistem Monitoring Terpadu Semesta Billing &amp; Smart Campus
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Semester Selector Pill */}
-          <div className="inline-flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 transition">
-            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="inline-flex items-center gap-2 bg-slate-50 dark:bg-[#16221c] hover:bg-slate-100 dark:hover:bg-[#1c2c24] border border-slate-200 dark:border-[#1e2e26] px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 transition">
+            <svg className="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <rect height="18" rx="2" strokeWidth="2" width="18" x="3" y="4"></rect>
               <line strokeWidth="2" x1="16" x2="16" y1="2" y2="6"></line>
               <line strokeWidth="2" x1="8" x2="8" y1="2" y2="6"></line>
@@ -240,11 +240,11 @@ export default function Bagian() {
             type="button"
             onClick={() => void muatUlang()}
             disabled={sedang}
-            className="inline-flex items-center gap-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium px-3 py-2 rounded-xl transition active:scale-90"
+            className="inline-flex items-center gap-1.5 bg-white dark:bg-[#16221c] hover:bg-slate-50 dark:hover:bg-[#1c2c24] border border-slate-200 dark:border-[#1e2e26] text-slate-700 dark:text-slate-200 text-xs font-medium px-3 py-2 rounded-xl transition active:scale-90"
             title="Muat ulang data"
           >
             <svg
-              className={`w-3.5 h-3.5 text-slate-500 ${sedang ? "animate-spin text-emerald-600" : ""}`}
+              className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${sedang ? "animate-spin text-emerald-600 dark:text-emerald-400" : ""}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -266,16 +266,16 @@ export default function Bagian() {
       {/* ============================================================ */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-5" data-purpose="metrics-and-charts">
         {/* Kolom Kiri: Dompet Kampus Semesta & Smartpass Card (Col 1-4) */}
-        <div className="lg:col-span-4 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="lg:col-span-4 bg-white dark:bg-[#121c17] rounded-2xl p-5 border border-slate-200/80 dark:border-[#1e2e26] shadow-xs flex flex-col justify-between transition-colors duration-150">
           <div>
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h2 className="text-sm font-bold text-slate-900">Dompet Kampus Semesta</h2>
-                <p className="text-[11px] text-slate-400">Total dana mengendap siswa</p>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">Dompet Kampus Semesta</h2>
+                <p className="text-[11px] text-slate-400 dark:text-slate-400">Total dana mengendap siswa</p>
               </div>
               <Link
                 href="/admin/keuangan"
-                className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition"
+                className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-[#16221c] hover:bg-slate-200 dark:hover:bg-[#1c2c24] text-slate-600 dark:text-slate-300 flex items-center justify-center transition"
                 title="Kelola Keuangan"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -324,14 +324,14 @@ export default function Bagian() {
           </div>
 
           {/* Bottom Omzet Metric */}
-          <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+          <div className="pt-4 mt-4 border-t border-slate-100 dark:border-[#1e2e26] flex items-center justify-between">
             <div>
-              <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">OMZET KANTIN HARI INI</div>
-              <div className="text-base font-bold text-slate-900">
+              <div className="text-[11px] font-medium text-slate-400 dark:text-slate-400 uppercase tracking-wider">OMZET KANTIN HARI INI</div>
+              <div className="text-base font-bold text-slate-900 dark:text-white">
                 {uang ? rp(k.omzet_hari_ini_rp ?? 0) : "—"}
               </div>
             </div>
-            <div className="flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full text-xs font-semibold">
+            <div className="flex items-center gap-1 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full text-xs font-semibold">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path d="M5 10l7-7m0 0l7 7m-7-7v18" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path>
               </svg>
@@ -341,44 +341,44 @@ export default function Bagian() {
         </div>
 
         {/* Kolom Tengah: Frekuensi Transaksi Per Jam (Col 5-9) */}
-        <div className="lg:col-span-5 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-white dark:bg-[#121c17] rounded-2xl p-5 border border-slate-200/80 dark:border-[#1e2e26] shadow-xs flex flex-col justify-between transition-colors duration-150">
           <div>
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-slate-500">
+                  <span className="w-6 h-6 rounded-md bg-slate-100 dark:bg-[#16221c] flex items-center justify-center text-slate-500 dark:text-slate-400">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
                     </svg>
                   </span>
-                  <h2 className="text-sm font-bold text-slate-900">Frekuensi Transaksi</h2>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Frekuensi Transaksi</h2>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-0.5">Aktivitas ritme per jam terminal</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-400 mt-0.5">Aktivitas ritme per jam terminal</p>
               </div>
 
               {/* Time toggles */}
-              <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-medium text-slate-600">
-                <button
-                  type="button"
-                  onClick={() => setPeriodeChart("7_hari")}
-                  className={`px-2.5 py-1 rounded-lg transition ${
-                    periodeChart === "7_hari"
-                      ? "bg-[#133e2f] text-white shadow-xs font-semibold"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  7 Hari
-                </button>
+              <div className="flex items-center bg-slate-100 dark:bg-[#16221c] p-1 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 border border-transparent dark:border-[#1e2e26]">
                 <button
                   type="button"
                   onClick={() => setPeriodeChart("hari_ini")}
-                  className={`px-2.5 py-1 rounded-lg transition ${
+                  className={`px-3 py-1 rounded-lg transition ${
                     periodeChart === "hari_ini"
-                      ? "bg-[#133e2f] text-white shadow-xs font-semibold"
-                      : "text-slate-500 hover:text-slate-800"
+                      ? "bg-white dark:bg-[#1f3529] text-slate-900 dark:text-white shadow-xs font-semibold"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
                   Hari Ini
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPeriodeChart("7_hari")}
+                  className={`px-3 py-1 rounded-lg transition ${
+                    periodeChart === "7_hari"
+                      ? "bg-white dark:bg-[#1f3529] text-slate-900 dark:text-white shadow-xs font-semibold"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  7 Hari
                 </button>
               </div>
             </div>
@@ -387,10 +387,10 @@ export default function Bagian() {
             <div className="relative h-44 flex items-end justify-between gap-3 px-2 pt-6 pb-2">
               {/* Grid line guides */}
               <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-40">
-                <div className="border-b border-dashed border-slate-200 w-full h-0"></div>
-                <div className="border-b border-dashed border-slate-200 w-full h-0"></div>
-                <div className="border-b border-dashed border-slate-200 w-full h-0"></div>
-                <div className="border-b border-dashed border-slate-200 w-full h-0"></div>
+                <div className="border-b border-dashed border-slate-200 dark:border-slate-800 w-full h-0"></div>
+                <div className="border-b border-dashed border-slate-200 dark:border-slate-800 w-full h-0"></div>
+                <div className="border-b border-dashed border-slate-200 dark:border-slate-800 w-full h-0"></div>
+                <div className="border-b border-slate-200 dark:border-slate-800 w-full h-0"></div>
               </div>
 
               {chartBars.map((bar) => {
@@ -418,7 +418,7 @@ export default function Bagian() {
                             ? isPeak
                               ? "bg-[#133e2f] shadow-sm ring-2 ring-emerald-500/20"
                               : "bg-emerald-400 group-hover:bg-emerald-500"
-                            : "bg-slate-200/70 group-hover:bg-slate-300"
+                            : "bg-slate-200/70 dark:bg-slate-800 group-hover:bg-slate-300 dark:group-hover:bg-slate-700"
                         }`}
                         title={`${bar.label} (Pkl ${bar.start}:00–${bar.end}:59): ${bar.hits} transaksi${
                           bar.nominal > 0 ? ` (${rp(bar.nominal)})` : ""
@@ -428,10 +428,10 @@ export default function Bagian() {
                     <span
                       className={`text-[10px] font-mono shrink-0 ${
                         isPeak
-                          ? "text-[#133e2f] font-bold"
+                          ? "text-[#133e2f] dark:text-emerald-400 font-bold"
                           : bar.hits > 0
-                          ? "text-slate-800 font-semibold"
-                          : "text-slate-400"
+                          ? "text-slate-700 dark:text-slate-300 font-medium"
+                          : "text-slate-400 dark:text-slate-500"
                       }`}
                     >
                       {bar.label}
@@ -442,8 +442,8 @@ export default function Bagian() {
             </div>
           </div>
 
-          {/* Bottom Legend */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+          {/* Footer of chart */}
+          <div className="pt-3 mt-2 border-t border-slate-100 dark:border-[#1e2e26] flex items-center justify-between text-xs text-slate-400 dark:text-slate-400">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span className="text-[11px]">
@@ -454,8 +454,8 @@ export default function Bagian() {
                   : "Respon terminal normal: 12ms"}
               </span>
             </div>
-            <span className="text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md">
-              Pembaruan Realtime
+            <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-medium px-2 py-0.5 rounded-full">
+              Realtime
             </span>
           </div>
         </div>
@@ -463,45 +463,45 @@ export default function Bagian() {
         {/* Kolom Kanan: Rekonsiliasi & Status Terminal (Col 10-12) */}
         <div className="lg:col-span-3 space-y-4 flex flex-col justify-between">
           {/* Mini Card 1: Rekonsiliasi Kas */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
+          <div className="bg-white dark:bg-[#121c17] rounded-2xl p-4 border border-slate-200/80 dark:border-[#1e2e26] shadow-xs transition-colors duration-150">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                <span className="text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-400 uppercase">
                   REKONSILIASI KAS
                 </span>
               </div>
-              <span className="w-6 h-6 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-xs">
+              <span className="w-6 h-6 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs">
                 ⏱
               </span>
             </div>
 
             <div className="flex items-baseline justify-between mb-1">
-              <h3 className="text-base font-bold text-amber-700">
+              <h3 className="text-base font-bold text-amber-700 dark:text-amber-400">
                 {k.rekonsiliasi_terakhir === null ? "Belum Sync" : k.selisih_terakhir === 0 ? "Tersinkron" : "Ada Selisih"}
               </h3>
               {k.rekonsiliasi_terakhir === null ? (
-                <span className="text-[10px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-full">
+                <span className="text-[10px] bg-slate-100 dark:bg-[#16221c] text-slate-600 dark:text-slate-300 font-semibold px-2 py-0.5 rounded-full">
                   Audit Kasir
                 </span>
               ) : (
-                <span className="text-[10px] bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 rounded-full">
+                <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold px-2 py-0.5 rounded-full">
                   {waktuSingkat(k.rekonsiliasi_terakhir)}
                 </span>
               )}
             </div>
 
-            <p className="text-[11px] text-slate-400 mb-3">
+            <p className="text-[11px] text-slate-400 dark:text-slate-400 mb-3">
               {k.selisih_terakhir !== null && k.selisih_terakhir !== 0
                 ? `Selisih kas ${rp(k.selisih_terakhir)}`
                 : "Ledger pencatatan kasir & gateway"}
             </p>
 
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-[11px] text-slate-500">Ledger audit</span>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-[#1e2e26]">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">Ledger audit</span>
               <Link
                 href="/admin/keuangan"
-                className="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-[#0f553e] text-xs font-semibold rounded-lg border border-emerald-200/80 transition"
+                className="px-3 py-1 bg-emerald-50 dark:bg-[#183427] hover:bg-emerald-100 dark:hover:bg-[#1f4232] text-[#0f553e] dark:text-emerald-300 text-xs font-semibold rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 transition"
               >
                 Cocokkan
               </Link>
@@ -509,33 +509,33 @@ export default function Bagian() {
           </div>
 
           {/* Mini Card 2: Status Terminal */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
+          <div className="bg-white dark:bg-[#121c17] rounded-2xl p-4 border border-slate-200/80 dark:border-[#1e2e26] shadow-xs transition-colors duration-150">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                <span className="text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-400 uppercase">
                   STATUS TERMINAL
                 </span>
               </div>
-              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md">
                 {terminalPercent}% Normal
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                <div className="text-[10px] font-medium text-slate-400 uppercase">ONLINE</div>
-                <div className="text-xl font-bold text-emerald-600">{onlineCount}</div>
+              <div className="bg-slate-50 dark:bg-[#16221c] p-2.5 rounded-xl border border-slate-100 dark:border-[#1e2e26]">
+                <div className="text-[10px] font-medium text-slate-400 dark:text-slate-400 uppercase">ONLINE</div>
+                <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{onlineCount}</div>
               </div>
-              <div className="bg-rose-50/70 p-2.5 rounded-xl border border-rose-100">
-                <div className="text-[10px] font-medium text-rose-500 uppercase">OFFLINE</div>
-                <div className="text-xl font-bold text-rose-600">{offlineCount}</div>
+              <div className="bg-rose-50/70 dark:bg-[#2e1417] p-2.5 rounded-xl border border-rose-100 dark:border-rose-900/50">
+                <div className="text-[10px] font-medium text-rose-500 dark:text-rose-400 uppercase">OFFLINE</div>
+                <div className="text-xl font-bold text-rose-600 dark:text-rose-400">{offlineCount}</div>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-400">
               <span>Pembaruan otomatis</span>
-              <span className="font-medium text-slate-600">Real-time</span>
+              <span className="font-medium text-slate-600 dark:text-slate-300">Real-time</span>
             </div>
           </div>
         </div>
@@ -544,27 +544,27 @@ export default function Bagian() {
       {/* ============================================================ */}
       {/* 3. PERLU PERHATIAN SECTION                                   */}
       {/* ============================================================ */}
-      <section className="bg-white rounded-2xl p-4 lg:p-5 border border-slate-200/80 shadow-xs space-y-3" data-purpose="offline-devices-alert">
+      <section className="bg-white dark:bg-[#121c17] rounded-2xl p-4 lg:p-5 border border-slate-200/80 dark:border-[#1e2e26] shadow-xs space-y-3" data-purpose="offline-devices-alert">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold text-slate-900">Perlu Perhatian</h2>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Perlu Perhatian</h2>
             {p.device_bermasalah.length > 0 ? (
-              <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-[10px] font-bold">
                 {p.device_bermasalah.length} OFFLINE
               </span>
             ) : (
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold">
                 SEMUA AMAN
               </span>
             )}
-            <span className="text-slate-300">·</span>
-            <span className="text-xs text-slate-400">
+            <span className="text-slate-300 dark:text-slate-600">·</span>
+            <span className="text-xs text-slate-400 dark:text-slate-400">
               Antrian ditolak: {p.antrian_ditolak.length} · PIN terkunci: {p.pin_terkunci.length}
             </span>
           </div>
 
           <div className="flex items-center gap-3 text-xs font-semibold">
-            <Link href="/admin/perangkat" className="text-[#0f553e] hover:underline flex items-center gap-1">
+            <Link href="/admin/perangkat" className="text-[#0f553e] dark:text-emerald-400 hover:underline flex items-center gap-1">
               Semua Device
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
@@ -579,22 +579,22 @@ export default function Bagian() {
             {p.device_bermasalah.map((d) => (
               <div
                 key={d.id}
-                className="min-w-[155px] flex-shrink-0 bg-slate-50/90 hover:bg-slate-50 border border-slate-200/90 rounded-xl p-3 flex flex-col justify-between transition"
+                className="min-w-[155px] flex-shrink-0 bg-slate-50/90 dark:bg-[#16221c] hover:bg-slate-50 dark:hover:bg-[#1c2c24] border border-slate-200/90 dark:border-[#1e2e26] rounded-xl p-3 flex flex-col justify-between transition"
               >
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-xs text-slate-800">{d.kode}</span>
+                    <span className="font-bold text-xs text-slate-800 dark:text-slate-200">{d.kode}</span>
                     <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
                   </div>
-                  <p className="text-[11px] text-slate-400 truncate">{d.lokasi || d.layanan} (offline)</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
+                  <p className="text-[11px] text-slate-400 dark:text-slate-400 truncate">{d.lokasi || d.layanan} (offline)</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-0.5">
                     {d.terakhir_online ? sejak(d.terakhir_online) : "belum pernah aktif"}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => handlePing(d.kode)}
-                  className="mt-3 w-full py-1 bg-white hover:bg-emerald-50 text-[#0f553e] border border-slate-200 hover:border-emerald-300 rounded-lg text-xs font-medium transition active:scale-95"
+                  className="mt-3 w-full py-1 bg-white dark:bg-[#1b2a22] hover:bg-emerald-50 dark:hover:bg-[#23382d] text-[#0f553e] dark:text-emerald-300 border border-slate-200 dark:border-[#284637] hover:border-emerald-300 dark:hover:border-emerald-600 rounded-lg text-xs font-medium transition active:scale-95"
                 >
                   {pingingDevice === d.kode ? "Pinging…" : "Ping"}
                 </button>
@@ -602,7 +602,7 @@ export default function Bagian() {
             ))}
           </div>
         ) : (
-          <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100 text-emerald-800 text-xs flex items-center gap-2">
+          <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/30 rounded-xl border border-emerald-100 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2">
             <span>✓</span> Seluruh terminal terhubung normal dan tidak ada antrian transaksi yang macet saat ini.
           </div>
         )}
@@ -611,11 +611,11 @@ export default function Bagian() {
       {/* ============================================================ */}
       {/* 4. FILTER PILLS LAYANAN MANDIRI                              */}
       {/* ============================================================ */}
-      <section className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-xs" data-purpose="layanan-mandiri-service-filters">
+      <section className="bg-white dark:bg-[#121c17] rounded-2xl p-3.5 border border-slate-200/80 dark:border-[#1e2e26] shadow-xs" data-purpose="layanan-mandiri-service-filters">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           {/* Label Module */}
           <div className="flex items-center gap-3 shrink-0">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <rect height="7" width="7" x="3" y="3"></rect>
                 <rect height="7" width="7" x="14" y="3"></rect>
@@ -624,8 +624,8 @@ export default function Bagian() {
               </svg>
             </div>
             <div>
-              <span className="font-bold text-xs text-slate-900 block">Layanan Mandiri</span>
-              <span className="text-[11px] text-slate-400">Filter transaksi unit operasional</span>
+              <span className="font-bold text-xs text-slate-900 dark:text-slate-100 block">Layanan Mandiri</span>
+              <span className="text-[11px] text-slate-400 dark:text-slate-400">Filter transaksi unit operasional</span>
             </div>
           </div>
 
@@ -637,8 +637,8 @@ export default function Bagian() {
               onClick={() => setLayananFilter("semua")}
               className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition ${
                 layananFilter === "semua"
-                  ? "bg-[#133e2f] text-white shadow-xs"
-                  : "bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                  ? "bg-[#133e2f] dark:bg-emerald-600 text-white shadow-xs"
+                  : "bg-slate-50 dark:bg-[#16221c] hover:bg-slate-100 dark:hover:bg-[#1e2e26] border border-slate-200 dark:border-[#1e2e26] text-slate-700 dark:text-slate-200"
               }`}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -657,12 +657,12 @@ export default function Bagian() {
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium shrink-0 transition ${
                 layananFilter === "kantin"
                   ? "bg-amber-600 text-white shadow-xs font-bold"
-                  : "bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                  : "bg-slate-50 dark:bg-[#16221c] hover:bg-slate-100 dark:hover:bg-[#1e2e26] border border-slate-200 dark:border-[#1e2e26] text-slate-700 dark:text-slate-200"
               }`}
             >
               <span className={layananFilter === "kantin" ? "text-white" : "text-amber-500"}>🍱</span>
               <span>Kantin</span>
-              <span className="text-[10px] bg-amber-100 text-amber-800 font-semibold px-1.5 py-0.2 rounded-full">2 Pos</span>
+              <span className="text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold px-1.5 py-0.2 rounded-full">2 Pos</span>
             </button>
 
             {/* 3. Laundry */}
@@ -672,7 +672,7 @@ export default function Bagian() {
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium shrink-0 transition ${
                 layananFilter === "laundry"
                   ? "bg-sky-600 text-white shadow-xs font-bold"
-                  : "bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                  : "bg-slate-50 dark:bg-[#16221c] hover:bg-slate-100 dark:hover:bg-[#1e2e26] border border-slate-200 dark:border-[#1e2e26] text-slate-700 dark:text-slate-200"
               }`}
             >
               <span className={layananFilter === "laundry" ? "text-white" : "text-sky-500"}>🧺</span>
@@ -686,12 +686,12 @@ export default function Bagian() {
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium shrink-0 transition ${
                 layananFilter === "loker"
                   ? "bg-indigo-600 text-white shadow-xs font-bold"
-                  : "bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                  : "bg-slate-50 dark:bg-[#16221c] hover:bg-slate-100 dark:hover:bg-[#1e2e26] border border-slate-200 dark:border-[#1e2e26] text-slate-700 dark:text-slate-200"
               }`}
             >
               <span className={layananFilter === "loker" ? "text-white" : "text-indigo-500"}>🔐</span>
               <span>Loker</span>
-              <span className="text-[9px] bg-slate-200/80 text-slate-600 font-bold px-1.5 py-0.5 rounded">PILOT</span>
+              <span className="text-[9px] bg-slate-200/80 dark:bg-[#23382d] text-slate-600 dark:text-slate-300 font-bold px-1.5 py-0.5 rounded">PILOT</span>
             </button>
 
             {/* 5. Perpustakaan */}
@@ -701,12 +701,12 @@ export default function Bagian() {
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium shrink-0 transition ${
                 layananFilter === "perpus"
                   ? "bg-teal-700 text-white shadow-xs font-bold"
-                  : "bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                  : "bg-slate-50 dark:bg-[#16221c] hover:bg-slate-100 dark:hover:bg-[#1e2e26] border border-slate-200 dark:border-[#1e2e26] text-slate-700 dark:text-slate-200"
               }`}
             >
               <span className={layananFilter === "perpus" ? "text-white" : "text-teal-600"}>📚</span>
               <span>Perpus</span>
-              <span className="text-[9px] bg-slate-200/80 text-slate-600 font-bold px-1.5 py-0.5 rounded">PILOT</span>
+              <span className="text-[9px] bg-slate-200/80 dark:bg-[#23382d] text-slate-600 dark:text-slate-300 font-bold px-1.5 py-0.5 rounded">PILOT</span>
             </button>
 
             {/* 6. Vending Machine */}
@@ -716,12 +716,12 @@ export default function Bagian() {
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium shrink-0 transition ${
                 layananFilter === "vending"
                   ? "bg-rose-600 text-white shadow-xs font-bold"
-                  : "bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                  : "bg-slate-50 dark:bg-[#16221c] hover:bg-slate-100 dark:hover:bg-[#1e2e26] border border-slate-200 dark:border-[#1e2e26] text-slate-700 dark:text-slate-200"
               }`}
             >
               <span className={layananFilter === "vending" ? "text-white" : "text-rose-500"}>🥤</span>
               <span>Vending</span>
-              <span className="text-[9px] bg-slate-200/80 text-slate-600 font-bold px-1.5 py-0.5 rounded">PILOT</span>
+              <span className="text-[9px] bg-slate-200/80 dark:bg-[#23382d] text-slate-600 dark:text-slate-300 font-bold px-1.5 py-0.5 rounded">PILOT</span>
             </button>
           </div>
         </div>
@@ -730,22 +730,22 @@ export default function Bagian() {
       {/* ============================================================ */}
       {/* 5. TRANSAKSI TERAKHIR (DESKTOP TABLE + MOBILE CARDS)         */}
       {/* ============================================================ */}
-      <section className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden" data-purpose="recent-transactions-table">
-        <div className="p-4 sm:p-5 pb-3 flex items-center justify-between border-b border-slate-100">
+      <section className="bg-white dark:bg-[#121c17] rounded-2xl border border-slate-200/80 dark:border-[#1e2e26] shadow-xs overflow-hidden" data-purpose="recent-transactions-table">
+        <div className="p-4 sm:p-5 pb-3 flex items-center justify-between border-b border-slate-100 dark:border-[#1e2e26]">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-slate-900">Transaksi Terakhir</h2>
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Transaksi Terakhir</h2>
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#16221c] text-slate-600 dark:text-slate-300 text-[10px] font-semibold border border-transparent dark:border-[#1e2e26]">
                 {daftarTransaksi.length} terbaru
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">
+            <p className="text-[11px] text-slate-400 dark:text-slate-400 mt-0.5">
               Rekapitulasi transaksi kartu tap &amp; mutasi dompet siswa
             </p>
           </div>
           <Link
             href="/admin/laporan"
-            className="text-xs font-semibold text-[#0f553e] hover:text-[#0b291e] flex items-center gap-1"
+            className="text-xs font-semibold text-[#0f553e] dark:text-emerald-400 hover:text-[#0b291e] dark:hover:text-emerald-300 flex items-center gap-1"
           >
             Lihat Semua Buku Kas
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -758,7 +758,7 @@ export default function Bagian() {
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50 border-b border-slate-100">
+              <tr className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider bg-slate-50/50 dark:bg-[#14201a] border-b border-slate-100 dark:border-[#1e2e26]">
                 <th className="py-3 px-5">SISWA / PELANGGAN</th>
                 <th className="py-3 px-4">WAKTU</th>
                 <th className="py-3 px-4">LAYANAN &amp; DETAIL ITEM</th>
@@ -767,63 +767,63 @@ export default function Bagian() {
                 <th className="py-3 px-5 text-right">NOMINAL</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-[#1e2e26]">
               {daftarTransaksi.map((t, idx) => {
                 const nama = t.siswa || "Akun Siswa";
                 const inisialNama = inisial(nama);
-                const isTopup = t.jenis?.toLowerCase().includes("topup") || t.total_rp > 0 && t.jenis === "kredit";
+                const isTopup = t.jenis?.toLowerCase().includes("topup") || (t.total_rp > 0 && t.jenis === "kredit");
 
                 return (
-                  <tr key={idx} className="hover:bg-slate-50/70 transition">
+                  <tr key={idx} className="hover:bg-slate-50/70 dark:hover:bg-[#162820] transition">
                     <td className="py-3.5 px-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#0f553e] font-bold flex items-center justify-center text-xs">
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-[#0f553e] dark:text-emerald-300 font-bold flex items-center justify-center text-xs">
                           {inisialNama}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900">{nama}</div>
-                          <div className="text-[10px] text-slate-400">
+                          <div className="font-bold text-slate-900 dark:text-slate-100">{nama}</div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-400">
                             {t.siswa ? "Siswa Aktif" : "Wali Murid"}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 text-slate-600">
-                      <div className="font-medium text-slate-800">{waktuSingkat(t.waktu)}</div>
-                      <div className="text-[10px] text-slate-400">{sejak(t.waktu)}</div>
+                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
+                      <div className="font-medium text-slate-800 dark:text-slate-200">{waktuSingkat(t.waktu)}</div>
+                      <div className="text-[10px] text-slate-400 dark:text-slate-400">{sejak(t.waktu)}</div>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
                             t.layanan?.toLowerCase().includes("kantin")
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/50"
                               : t.layanan?.toLowerCase().includes("laundry")
-                              ? "bg-sky-50 text-sky-700 border-sky-200"
+                              ? "bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-900/50"
                               : isTopup
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : "bg-slate-50 text-slate-700 border-slate-200"
+                              ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50"
+                              : "bg-slate-50 dark:bg-[#16221c] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#1e2e26]"
                           }`}
                         >
                           {t.layanan ? t.layanan.toUpperCase() : t.jenis}
                         </span>
-                        <span className="text-slate-700 text-xs truncate max-w-xs">{t.item || "Transaksi Kartu"}</span>
+                        <span className="text-slate-700 dark:text-slate-300 text-xs truncate max-w-xs">{t.item || "Transaksi Kartu"}</span>
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                         Berhasil
                       </span>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="font-mono text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                      <span className="font-mono text-[11px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-[#16221c] border border-transparent dark:border-[#1e2e26] px-2 py-0.5 rounded">
                         {t.device || "GATEWAY"}
                       </span>
                     </td>
                     <td
                       className={`py-3.5 px-5 text-right font-bold ${
-                        isTopup ? "text-emerald-700" : "text-slate-900"
+                        isTopup ? "text-emerald-700 dark:text-emerald-400" : "text-slate-900 dark:text-slate-100"
                       }`}
                     >
                       {isTopup ? `+${rp(t.total_rp)}` : rp(t.total_rp)}
@@ -834,7 +834,7 @@ export default function Bagian() {
 
               {daftarTransaksi.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 text-xs">
+                  <td colSpan={6} className="py-8 text-center text-slate-400 dark:text-slate-400 text-xs">
                     Tidak ada transaksi yang cocok dengan filter layanan.
                   </td>
                 </tr>
@@ -848,21 +848,21 @@ export default function Bagian() {
           {daftarTransaksi.map((t, idx) => {
             const nama = t.siswa || "Akun Siswa";
             const inisialNama = inisial(nama);
-            const isTopup = t.jenis?.toLowerCase().includes("topup") || t.total_rp > 0 && t.jenis === "kredit";
+            const isTopup = t.jenis?.toLowerCase().includes("topup") || (t.total_rp > 0 && t.jenis === "kredit");
 
             return (
               <div
                 key={idx}
-                className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-2xs space-y-2"
+                className="bg-white dark:bg-[#16221c] rounded-2xl p-3 border border-slate-200/80 dark:border-[#1e2e26] shadow-2xs space-y-2"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#0f553e] font-bold text-xs flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-[#0f553e] dark:text-emerald-300 font-bold text-xs flex items-center justify-center shrink-0">
                       {inisialNama}
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-900 leading-tight">{nama}</h4>
-                      <p className="text-[10px] text-slate-400 font-medium">
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">{nama}</h4>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-400 font-medium">
                         {t.siswa ? "Siswa Aktif" : "Wali Murid"}
                       </p>
                     </div>
@@ -870,48 +870,48 @@ export default function Bagian() {
                   <div className="text-right">
                     <span
                       className={`text-xs font-black ${
-                        isTopup ? "text-emerald-700" : "text-slate-900"
+                        isTopup ? "text-emerald-700 dark:text-emerald-400" : "text-slate-900 dark:text-slate-100"
                       }`}
                     >
                       {isTopup ? `+${rp(t.total_rp)}` : rp(t.total_rp)}
                     </span>
-                    <p className="text-[10px] text-slate-400 font-mono">{t.device || "GATEWAY"}</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-400 font-mono">{t.device || "GATEWAY"}</p>
                   </div>
                 </div>
 
-                <div className="bg-slate-50 rounded-xl p-2 border border-slate-100 flex items-center justify-between text-[11px]">
-                  <div className="flex items-center gap-1.5 text-slate-700 overflow-hidden">
+                <div className="bg-slate-50 dark:bg-[#121c17] rounded-xl p-2 border border-slate-100 dark:border-[#1e2e26] flex items-center justify-between text-[11px]">
+                  <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200 overflow-hidden">
                     <span
                       className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${
                         t.layanan?.toLowerCase().includes("kantin")
-                          ? "bg-amber-100/80 text-amber-800"
+                          ? "bg-amber-100/80 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300"
                           : t.layanan?.toLowerCase().includes("laundry")
-                          ? "bg-sky-100/80 text-sky-800"
+                          ? "bg-sky-100/80 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300"
                           : isTopup
-                          ? "bg-emerald-100/80 text-emerald-800"
-                          : "bg-slate-200/80 text-slate-700"
+                          ? "bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300"
+                          : "bg-slate-200/80 dark:bg-[#1e2e26] text-slate-700 dark:text-slate-300"
                       }`}
                     >
                       {t.layanan ? t.layanan.toUpperCase() : t.jenis}
                     </span>
-                    <span className="truncate text-[10px] text-slate-600">{t.item || "Transaksi Kartu"}</span>
+                    <span className="truncate text-[10px] text-slate-600 dark:text-slate-300">{t.item || "Transaksi Kartu"}</span>
                   </div>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 shrink-0 ml-1">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 shrink-0 ml-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                     Berhasil
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-400 pt-0.5">
                   <span>{waktuSingkat(t.waktu)}</span>
-                  <span className="font-mono text-slate-400">{sejak(t.waktu)}</span>
+                  <span className="font-mono text-slate-400 dark:text-slate-400">{sejak(t.waktu)}</span>
                 </div>
               </div>
             );
           })}
 
           {daftarTransaksi.length === 0 && (
-            <div className="py-6 text-center text-slate-400 text-xs">
+            <div className="py-6 text-center text-slate-400 dark:text-slate-400 text-xs">
               Tidak ada transaksi yang cocok dengan filter layanan.
             </div>
           )}
