@@ -1321,5 +1321,40 @@ input[type=time], input[type=date], input[type=month], textarea {
   line-height: 1.35;
 }
 
+/* ===== Google Stitch Admin Dashboard Custom Utilities ===== */
+.smartpass-card {
+  background: linear-gradient(145deg, #09392b 0%, #124e3b 50%, #0d382b 100%);
+}
+.smartpass-pattern {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 4px;
+}
+.shadow-float {
+  box-shadow: 0 12px 30px -4px rgba(6, 78, 59, 0.22), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+}
+.shadow-card {
+  box-shadow: 0 2px 8px -1px rgba(15, 23, 42, 0.04), 0 1px 3px -1px rgba(15, 23, 42, 0.02);
+}
+
+
 
 
