@@ -81,8 +81,8 @@ interface DeviceBermasalah {
 
 interface Jam {
   jam: number;
-  hitung: number;
-  nominal_rp: number;
+  jumlah: number;
+  nilai_rp?: number | null;
 }
 
 interface Isi {
@@ -153,25 +153,31 @@ export default function Bagian() {
   const offlineCount = Math.max(0, k.device_total - k.device_online);
   const terminalPercent = Math.round((onlineCount / totalDevice) * 100);
 
-  // Perhitungan data jam untuk chart
+  // Perhitungan data jam untuk chart dari data riil v_transaksi_per_jam
   const jamSlots = [
-    { label: "06:00", jam: 6 },
-    { label: "09:00", jam: 9 },
-    { label: "12:00", jam: 12 },
-    { label: "15:00", jam: 15 },
-    { label: "18:00", jam: 18 },
-    { label: "21:00", jam: 21 },
+    { label: "06:00", start: 6, end: 8 },
+    { label: "09:00", start: 9, end: 11 },
+    { label: "12:00", start: 12, end: 14 },
+    { label: "15:00", start: 15, end: 17 },
+    { label: "18:00", start: 18, end: 20 },
+    { label: "21:00", start: 21, end: 23 },
   ];
 
   const chartBars = jamSlots.map((slot) => {
-    const hits = data.per_jam
-      .filter((j) => j.jam >= slot.jam && j.jam < slot.jam + 3)
-      .reduce((acc, curr) => acc + curr.hitung, 0);
-    return { ...slot, hits };
+    const matching = (data.per_jam || []).filter(
+      (j) => Number(j.jam) >= slot.start && Number(j.jam) <= slot.end
+    );
+    const hits = matching.reduce((acc, curr) => acc + Number(curr.jumlah || 0), 0);
+    const nominal = matching.reduce((acc, curr) => acc + Number(curr.nilai_rp || 0), 0);
+    return { ...slot, hits, nominal };
   });
 
+  const totalHits = chartBars.reduce((acc, b) => acc + b.hits, 0);
   const maxHits = Math.max(...chartBars.map((b) => b.hits), 1);
-  const peakSlot = chartBars.reduce((prev, curr) => (curr.hits > prev.hits ? curr : prev), chartBars[0]);
+  const peakSlot = chartBars.reduce(
+    (prev, curr) => (curr.hits > prev.hits ? curr : prev),
+    chartBars[0]
+  );
 
   // Simulasi tombol Ping
   function handlePing(kode: string) {
@@ -276,9 +282,18 @@ export default function Bagian() {
             </div>
 
             {/* Smartpass Digital Card */}
-            <div className="smartpass-card smartpass-pattern rounded-2xl p-4 text-white shadow-md relative overflow-hidden">
+            <div
+              className="smartpass-card rounded-2xl p-4 text-white shadow-md relative overflow-hidden"
+              style={{
+                backgroundColor: "#09392b",
+                backgroundImage:
+                  "radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px), linear-gradient(145deg, #09392b 0%, #124e3b 50%, #0d382b 100%)",
+                backgroundSize: "14px 14px, 100% 100%",
+                color: "#ffffff",
+              }}
+            >
               <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-emerald-500/10 pointer-events-none" />
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 relative z-10">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-black tracking-wider text-emerald-300">SMARTPASS</span>
                   <span className="text-[10px] bg-emerald-700/60 px-1.5 py-0.5 rounded text-emerald-100 font-medium">BBS</span>
@@ -289,16 +304,16 @@ export default function Bagian() {
                 </svg>
               </div>
 
-              <div className="space-y-0.5 mb-4">
+              <div className="space-y-0.5 mb-4 relative z-10">
                 <div className="text-[10px] tracking-wide text-emerald-200/90 font-medium uppercase">TOTAL SALDO SISWA</div>
-                <div className="text-2xl font-bold tracking-tight text-white">
+                <div className="text-2xl font-bold tracking-tight text-white drop-shadow-sm">
                   {uang ? rp(k.total_float_rp ?? 0) : "Terselubung"}
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs pt-1 border-t border-emerald-700/40 text-emerald-200">
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-emerald-700/40 text-emerald-200 relative z-10">
                 <span className="tracking-widest font-mono text-[11px]">•••• {ribuan(k.kartu_aktif)} KARTU AKTIF</span>
-                <span className="font-medium bg-black/20 px-2 py-0.5 rounded-full text-[10px]">
+                <span className="font-medium bg-black/20 px-2 py-0.5 rounded-full text-[10px] text-white">
                   {ribuan(k.siswa_aktif)} Siswa
                 </span>
               </div>
@@ -376,8 +391,11 @@ export default function Bagian() {
               </div>
 
               {chartBars.map((bar) => {
-                const isPeak = bar.hits > 0 && bar.jam === peakSlot.jam;
-                const pct = Math.max(14, Math.round((bar.hits / maxHits) * 88));
+                const isPeak = bar.hits > 0 && bar.hits === peakSlot.hits;
+                const pct =
+                  bar.hits > 0
+                    ? Math.max(30, Math.round((bar.hits / maxHits) * 88))
+                    : 8;
 
                 return (
                   <div key={bar.label} className="flex-1 flex flex-col items-center gap-1.5 z-10 relative group">
@@ -390,15 +408,23 @@ export default function Bagian() {
                     <div
                       style={{ height: `${pct}%` }}
                       className={`w-full max-w-[28px] rounded-t-lg transition-all ${
-                        isPeak
-                          ? "bg-[#133e2f]"
-                          : "bg-emerald-200 group-hover:bg-emerald-300"
+                        bar.hits > 0
+                          ? isPeak
+                            ? "bg-[#133e2f] shadow-sm ring-2 ring-emerald-500/20"
+                            : "bg-emerald-400 group-hover:bg-emerald-500"
+                          : "bg-slate-200/70 group-hover:bg-slate-300"
                       }`}
-                      title={`${bar.label}: ${bar.hits} transaksi`}
+                      title={`${bar.label} (Pkl ${bar.start}:00–${bar.end}:59): ${bar.hits} transaksi${
+                        bar.nominal > 0 ? ` (${rp(bar.nominal)})` : ""
+                      }`}
                     />
                     <span
                       className={`text-[10px] font-mono ${
-                        isPeak ? "text-[#133e2f] font-bold" : "text-slate-400"
+                        isPeak
+                          ? "text-[#133e2f] font-bold"
+                          : bar.hits > 0
+                          ? "text-slate-800 font-semibold"
+                          : "text-slate-400"
                       }`}
                     >
                       {bar.label}
@@ -413,7 +439,11 @@ export default function Bagian() {
           <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[11px]">Respon terminal normal: 12ms</span>
+              <span className="text-[11px]">
+                {totalHits > 0
+                  ? `${totalHits} transaksi tap kartu hari ini`
+                  : "Respon terminal normal: 12ms"}
+              </span>
             </div>
             <span className="text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md">
               Pembaruan Realtime
