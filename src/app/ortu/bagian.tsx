@@ -397,80 +397,202 @@ export default function Bagian() {
 
         {/* Konten Utama */}
         <main className="ortu-body">
-          {pesan ? (
+          {pesan && !lembar ? (
             <div className={gagal ? "t-err" : "t-ok"} style={{ marginBottom: 14 }}>
               {pesan}
             </div>
           ) : null}
 
-          {/* Modal / Sheet Lembar Aksi Cepat */}
+          {/* ============================================================ */}
+          {/* MODAL POP-UP: ATUR BATAS BELANJA HARIAN                      */}
+          {/* ============================================================ */}
           {lembar === "limit" ? (
-            <div className="ortu-action-card" style={{ border: "2px solid var(--accent)", background: "var(--surface)" }}>
-              <h2 style={{ fontSize: 16, marginTop: 0, marginBottom: 8 }}>Batas Belanja Harian {s.nama}</h2>
-              <div className="field">
-                <label className="f" htmlFor="lim">Batas per hari (Rp)</label>
-                <input
-                  id="lim"
-                  type="number"
-                  min={0}
-                  step={1000}
-                  value={limitBaru}
-                  placeholder={String(lim?.limit_harian_rp ?? 50000)}
-                  style={{ width: "100%", fontSize: 16, padding: "8px 10px" }}
-                  onChange={e => setLimitBaru(e.target.value)}
-                />
+            <div style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0, 0, 0, 0.65)",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+              zIndex: 1000,
+              display: "grid",
+              placeItems: "center",
+              padding: "16px",
+              animation: "modalFadeIn 0.15s ease",
+            }}>
+              <div className="ortu-action-card" style={{
+                maxWidth: 400,
+                width: "100%",
+                margin: 0,
+                padding: "20px 18px",
+                background: "var(--surface)",
+                border: "1px solid var(--rule)",
+                borderRadius: 18,
+                boxShadow: "0 20px 48px rgba(0, 0, 0, 0.3)",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <h2 style={{ fontSize: 16, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span>⚙️</span> Batas Belanja Harian
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => { setLembar(null); setPesan(""); }}
+                    style={{ background: "none", border: "none", fontSize: 24, color: "var(--ink-3)", cursor: "pointer", padding: "0 4px", lineHeight: 1 }}
+                    aria-label="Tutup"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--ink-2)" }}>
+                  Atur kuota maksimal jajan/belanja untuk <b>{s.nama}</b> per hari.
+                </p>
+
+                <div className="field">
+                  <label className="f" htmlFor="lim-popup">Batas Maksimal per Hari (Rp)</label>
+                  <input
+                    id="lim-popup"
+                    type="number"
+                    min={0}
+                    step={1000}
+                    autoFocus
+                    value={limitBaru}
+                    placeholder={String(lim?.limit_harian_rp ?? 50000)}
+                    style={{ width: "100%", fontSize: 18, fontWeight: 700, padding: "10px 12px" }}
+                    onChange={e => setLimitBaru(e.target.value)}
+                  />
+                </div>
+
+                {/* Pilihan Cepat / Preset Chips */}
+                <div style={{ marginBottom: 12 }}>
+                  <div className="p-note" style={{ fontSize: 11, marginBottom: 6 }}>Pilihan Cepat:</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {[20000, 30000, 50000, 75000, 100000].map(nom => (
+                      <button
+                        key={nom}
+                        type="button"
+                        className="btn sm"
+                        style={{
+                          fontSize: 11.5,
+                          padding: "5px 9px",
+                          borderRadius: 999,
+                          background: limitBaru === String(nom) ? "var(--accent)" : "var(--surface)",
+                          color: limitBaru === String(nom) ? "#ffffff" : "var(--ink)",
+                          borderColor: limitBaru === String(nom) ? "var(--accent)" : "var(--rule)",
+                          fontWeight: limitBaru === String(nom) ? 700 : 500,
+                        }}
+                        onClick={() => setLimitBaru(String(nom))}
+                      >
+                        {rp(nom)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ background: "var(--surface-sunken, rgba(0,0,0,0.03))", padding: "10px 12px", borderRadius: 10, fontSize: 11.5, color: "var(--ink-2)", lineHeight: 1.4, marginBottom: 16, border: "1px solid var(--rule)" }}>
+                  ℹ️ Anda hanya bisa <b>menurunkan</b> batas di bawah plafon sekolah ({lim ? rp(lim.plafon_rp) : "—"}). Jika kedua orang tua mengatur angka berbeda, sistem otomatis menerapkan <b>angka terendah</b> demi keamanan anak.
+                </div>
+
+                {gagal && pesan ? (
+                  <div className="t-err" style={{ marginBottom: 12, fontSize: 12.5 }}>
+                    {pesan}
+                  </div>
+                ) : null}
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <button
+                    type="button"
+                    className="btn pri blok"
+                    disabled={sibuk || limitBaru === ""}
+                    onClick={() => void simpanLimit()}
+                  >
+                    {sibuk ? "Menyimpan…" : "Simpan Batas Harian"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn blok"
+                    disabled={sibuk}
+                    onClick={() => { setLembar(null); setPesan(""); }}
+                  >
+                    Batal
+                  </button>
+                </div>
               </div>
-              <p className="p-note" style={{ margin: "8px 0 14px" }}>
-                Anda hanya bisa <b>menurunkan</b> batas, tidak menaikkannya di atas plafon sekolah
-                ({lim ? rp(lim.plafon_rp) : "—"}). Jika kedua orang tua mengisi angka berbeda, yang
-                berlaku adalah <b>yang terendah</b>.
-              </p>
-              <button
-                type="button"
-                className="btn pri blok"
-                disabled={sibuk || limitBaru === ""}
-                onClick={() => void simpanLimit()}
-              >
-                {sibuk ? "Menyimpan…" : "Simpan Batas Harian"}
-              </button>
-              <button
-                type="button"
-                className="btn blok"
-                style={{ marginTop: 8 }}
-                onClick={() => setLembar(null)}
-              >
-                Tutup
-              </button>
             </div>
           ) : null}
 
+          {/* ============================================================ */}
+          {/* MODAL POP-UP: LAPORKAN KARTU HILANG                          */}
+          {/* ============================================================ */}
           {lembar === "hilang" ? (
-            <div className="ortu-action-card" style={{ border: "2px solid var(--critical)", background: "var(--crit-soft)" }}>
-              <h2 style={{ fontSize: 16, marginTop: 0, marginBottom: 8, color: "var(--critical)" }}>
-                Laporkan Kartu Hilang
-              </h2>
-              <div style={{ fontSize: 13, lineHeight: 1.4, color: "var(--ink)" }}>
-                Kartu RFID milik <b>{s.nama}</b> akan <b>diblokir seketika</b> agar tidak bisa dipakai belanja atau transaksi oleh siapa pun.
-                <br /><br />
-                <b>Uang & saldo tetap 100% aman.</b> Saldo terikat pada data akun siswa, bukan fisik kartu. Anda bisa langsung menghubungi TU untuk penerbitan kartu pengganti.
+            <div style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0, 0, 0, 0.65)",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+              zIndex: 1000,
+              display: "grid",
+              placeItems: "center",
+              padding: "16px",
+              animation: "modalFadeIn 0.15s ease",
+            }}>
+              <div className="ortu-action-card" style={{
+                maxWidth: 400,
+                width: "100%",
+                margin: 0,
+                padding: "20px 18px",
+                background: "var(--surface)",
+                border: "2px solid var(--crit-soft)",
+                borderRadius: 18,
+                boxShadow: "0 20px 48px rgba(0, 0, 0, 0.3)",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <h2 style={{ fontSize: 16, margin: 0, color: "var(--crit-text)", display: "flex", alignItems: "center", gap: 8 }}>
+                    <span>🛡️</span> Laporkan Kartu Hilang
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => { setLembar(null); setPesan(""); }}
+                    style={{ background: "none", border: "none", fontSize: 24, color: "var(--ink-3)", cursor: "pointer", padding: "0 4px", lineHeight: 1 }}
+                    aria-label="Tutup"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div style={{ fontSize: 13, lineHeight: 1.45, color: "var(--ink-2)", marginBottom: 16 }}>
+                  Kartu RFID fisik milik <b>{s.nama}</b> akan <b>diblokir seketika</b> agar tidak bisa dipakai belanja atau transaksi oleh siapa pun yang menemukannya.
+                  <div style={{ background: "var(--accent-soft)", color: "var(--accent-ink)", padding: "8px 12px", borderRadius: 8, marginTop: 10, fontSize: 12 }}>
+                    ✓ <b>Uang &amp; saldo tetap 100% aman.</b> Saldo terikat pada akun siswa, bukan kartu fisik. Kunjungi TU untuk penerbitan kartu pengganti.
+                  </div>
+                </div>
+
+                {gagal && pesan ? (
+                  <div className="t-err" style={{ marginBottom: 12, fontSize: 12.5 }}>
+                    {pesan}
+                  </div>
+                ) : null}
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <button
+                    type="button"
+                    className="btn danger blok"
+                    style={{ background: "var(--crit)", borderColor: "var(--crit)", color: "#ffffff" }}
+                    disabled={sibuk}
+                    onClick={() => void blokirKartu()}
+                  >
+                    {sibuk ? "Memblokir…" : "Ya, Blokir Kartu Sekarang"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn blok"
+                    disabled={sibuk}
+                    onClick={() => { setLembar(null); setPesan(""); }}
+                  >
+                    Batal
+                  </button>
+                </div>
               </div>
-              <button
-                type="button"
-                className="btn danger blok"
-                style={{ marginTop: 14 }}
-                disabled={sibuk}
-                onClick={() => void blokirKartu()}
-              >
-                {sibuk ? "Memblokir…" : "Ya, Blokir Kartu Sekarang"}
-              </button>
-              <button
-                type="button"
-                className="btn blok"
-                style={{ marginTop: 8 }}
-                onClick={() => setLembar(null)}
-              >
-                Batal
-              </button>
             </div>
           ) : null}
 
