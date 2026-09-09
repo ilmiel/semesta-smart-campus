@@ -318,8 +318,9 @@ function PanelMetodeTopup({ peta, selesai }: { peta: Map<string, Kebijakan>; sel
               flexDirection: "column",
               gap: 6,
               borderRadius: 12,
-              border: metode === "verifikasi_admin" ? "2px solid var(--brand-pri, #10b981)" : "1px solid var(--border, #e5e7eb)",
-              background: metode === "verifikasi_admin" ? "var(--brand-soft, rgba(16, 185, 129, 0.08))" : "var(--surface, #fff)",
+              border: metode === "verifikasi_admin" ? "2px solid var(--accent)" : "1px solid var(--rule)",
+              background: metode === "verifikasi_admin" ? "var(--brand-soft)" : "var(--surface)",
+              color: "var(--ink)",
               cursor: "pointer",
             }}
             onClick={() => { setMetode("verifikasi_admin"); setPesan(""); }}
@@ -343,8 +344,9 @@ function PanelMetodeTopup({ peta, selesai }: { peta: Map<string, Kebijakan>; sel
               flexDirection: "column",
               gap: 6,
               borderRadius: 12,
-              border: metode === "gateway" ? "2px solid var(--brand-pri, #10b981)" : "1px solid var(--border, #e5e7eb)",
-              background: metode === "gateway" ? "var(--brand-soft, rgba(16, 185, 129, 0.08))" : "var(--surface, #fff)",
+              border: metode === "gateway" ? "2px solid var(--accent)" : "1px solid var(--rule)",
+              background: metode === "gateway" ? "var(--brand-soft)" : "var(--surface)",
+              color: "var(--ink)",
               cursor: "pointer",
             }}
             onClick={() => { setMetode("gateway"); setPesan(""); }}
@@ -361,7 +363,7 @@ function PanelMetodeTopup({ peta, selesai }: { peta: Map<string, Kebijakan>; sel
 
         {/* Form Verifikasi Admin */}
         {metode === "verifikasi_admin" ? (
-          <div style={{ background: "var(--surface-sunken, #f8fafc)", border: "1px solid var(--border, #e2e8f0)", borderRadius: 12, padding: 18 }}>
+          <div style={{ background: "var(--surface-sunken)", border: "1px solid var(--rule)", borderRadius: 12, padding: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <span style={{ fontSize: 18 }}>📋</span>
               <div>
@@ -431,7 +433,7 @@ function PanelMetodeTopup({ peta, selesai }: { peta: Map<string, Kebijakan>; sel
 
         {/* Form Payment Gateway */}
         {metode === "gateway" ? (
-          <div style={{ background: "var(--surface-sunken, #f8fafc)", border: "1px solid var(--border, #e2e8f0)", borderRadius: 12, padding: 18 }}>
+          <div style={{ background: "var(--surface-sunken)", border: "1px solid var(--rule)", borderRadius: 12, padding: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <span style={{ fontSize: 18 }}>🔑</span>
               <div>
@@ -623,8 +625,8 @@ function PanelTemaWarna({ peta, selesai }: { peta: Map<string, Kebijakan>; seles
         {/* Mode Kustom Bebas */}
         <div
           style={{
-            background: "var(--surface-sunken, #f8fafc)",
-            border: isCustom ? "2px solid var(--accent)" : "1px solid var(--border, #e2e8f0)",
+            background: "var(--surface-sunken)",
+            border: isCustom ? "2px solid var(--accent)" : "1px solid var(--rule)",
             borderRadius: 12,
             padding: 16,
             marginBottom: 16,
@@ -977,8 +979,8 @@ function PanelIdentitasSekolah({
           {/* Kolom 1: Logo Portrait */}
           <div
             style={{
-              background: "var(--surface-sunken, #f8fafc)",
-              border: "1px solid var(--border, #e2e8f0)",
+              background: "var(--surface-sunken)",
+              border: "1px solid var(--rule)",
               borderRadius: 12,
               padding: 16,
             }}
@@ -1000,7 +1002,7 @@ function PanelIdentitasSekolah({
                   height: 76,
                   borderRadius: 12,
                   border: "1.5px dashed var(--rule)",
-                  background: "#fff",
+                  background: "var(--surface)",
                   display: "grid",
                   placeItems: "center",
                   overflow: "hidden",
@@ -1059,8 +1061,8 @@ function PanelIdentitasSekolah({
           {/* Kolom 2: Logo Landscape */}
           <div
             style={{
-              background: "var(--surface-sunken, #f8fafc)",
-              border: "1px solid var(--border, #e2e8f0)",
+              background: "var(--surface-sunken)",
+              border: "1px solid var(--rule)",
               borderRadius: 12,
               padding: 16,
             }}
@@ -1082,7 +1084,7 @@ function PanelIdentitasSekolah({
                   height: 76,
                   borderRadius: 12,
                   border: "1.5px dashed var(--rule)",
-                  background: "#fff",
+                  background: "var(--surface)",
                   display: "grid",
                   placeItems: "center",
                   overflow: "hidden",
@@ -1096,7 +1098,7 @@ function PanelIdentitasSekolah({
                     style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "contain" }}
                   />
                 ) : (
-                  <div style={{ color: "var(--ink-3)", fontSize: 12.5, fontStyle: "italic" }}>
+                  <div style={{ color: "var(--ink-2)", fontSize: 12.5, fontStyle: "italic" }}>
                     Belum ada logo landscape (menggunakan format portrait + teks)
                   </div>
                 )}

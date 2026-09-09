@@ -107,14 +107,14 @@ export default function Bagian() {
 
   if (galat) {
     return (
-      <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-4 text-sm flex items-center justify-between">
+      <div className="bg-rose-50 dark:bg-[#301414] border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-300 rounded-2xl p-4 text-sm flex items-center justify-between">
         <div>
           <b>Gagal memuat beranda:</b> {galat}
         </div>
         <button
           type="button"
           onClick={() => void muatUlang()}
-          className="px-3 py-1 bg-white border border-rose-300 rounded-xl text-xs font-semibold hover:bg-rose-100"
+          className="px-3 py-1 bg-white dark:bg-[#201111] border border-rose-300 dark:border-rose-800 rounded-xl text-xs font-semibold text-rose-800 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-[#3b1919]"
         >
           Coba Lagi
         </button>

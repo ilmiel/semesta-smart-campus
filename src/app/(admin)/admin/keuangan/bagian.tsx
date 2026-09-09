@@ -244,7 +244,9 @@ export default function Bagian() {
         >
           <div
             style={{
-              background: "#fff",
+              background: "var(--surface)",
+              color: "var(--ink)",
+              border: "1px solid var(--rule)",
               padding: 16,
               borderRadius: 12,
               maxWidth: 650,
@@ -260,7 +262,7 @@ export default function Bagian() {
               <b style={{ fontSize: 16 }}>Pratinjau Bukti Pembayaran / Transfer</b>
               <button type="button" className="btn sm" onClick={() => setModalFoto(null)}>✕ Tutup</button>
             </div>
-            <div style={{ overflow: "auto", maxHeight: "75vh", textAlign: "center", background: "#f1f5f9", borderRadius: 8, padding: 8 }}>
+            <div style={{ overflow: "auto", maxHeight: "75vh", textAlign: "center", background: "var(--surface-sunken)", border: "1px solid var(--rule)", borderRadius: 8, padding: 8 }}>
               <img
                 src={modalFoto}
                 alt="Bukti pembayaran"

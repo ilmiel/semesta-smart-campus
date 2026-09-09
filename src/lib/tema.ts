@@ -175,22 +175,27 @@ export function buatTemaKustom(accentHex: string, sideBgHex?: string, nama = "Ku
 /** Menghasilkan string CSS variabel untuk diinjeksi ke `<style>` */
 export function temaKeCss(tema: TemaWarna): string {
   return `
-:root {
+:root, :root[data-theme="light"] {
   --accent: ${tema.accent} !important;
   --accent-ink: ${tema.accent_ink} !important;
   --accent-soft: ${tema.accent_soft} !important;
+  --brand-soft: ${tema.accent_soft} !important;
   --side-bg: ${tema.side_bg} !important;
   --side-ink: ${tema.side_ink} !important;
   --side-ink-2: ${tema.side_ink_2} !important;
   --side-active: ${tema.side_active} !important;
   --brand-pri: ${tema.accent} !important;
 }
-:root[data-theme="dark"] {
+:root[data-theme="dark"], html.dark {
+  --accent: #10b981 !important;
+  --accent-ink: #34d399 !important;
+  --accent-soft: #132b20 !important;
+  --brand-soft: #132b20 !important;
   --side-bg: ${tema.side_bg} !important;
   --side-active: ${tema.side_active} !important;
   --side-ink: ${tema.side_ink} !important;
   --side-ink-2: ${tema.side_ink_2} !important;
-  --brand-pri: ${tema.accent} !important;
+  --brand-pri: #10b981 !important;
 }
 `.trim();
 }

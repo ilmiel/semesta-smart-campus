@@ -158,7 +158,7 @@ export default function AdminShell({ user, children }: AdminShellProps) {
                     className={`px-3.5 py-1.5 rounded-xl transition-all ${
                       isAktif
                         ? "bg-[#133e2f] dark:bg-emerald-600 text-white shadow-xs font-semibold"
-                        : "hover:text-slate-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-[#1c2c24]"
+                        : "text-slate-600 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-[#1c2c24]"
                     }`}
                   >
                     {item.label}
