@@ -1,10 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CariSiswa, { type SiswaRingkas } from "@/components/CariSiswa";
 import { Badge, CatatanKaki, Panel, Tile } from "@/components/ui";
 import { api, useMuat, waktuSingkat } from "@/lib/api";
 import { rp } from "@/lib/format";
+
+interface AkunSistem {
+  jenis: string;
+  nama: string;
+  saldo_rp: number;
+  jumlah_entri: number;
+}
+
+interface RekonLog {
+  id: number;
+  waktu: string;
+  total_float_rp: number | null;
+  total_kas_rp: number | null;
+  total_piutang_rp: number | null;
+  total_pendapatan_rp: number | null;
+  selisih_rp: number | null;
+  jumlah_akun_siswa: number | null;
+  keterangan: string | null;
+}
+
+interface FloatSiswa {
+  total_float_rp: number;
+  jumlah_siswa: number;
+}
+
+interface IsiRekon {
+  log: RekonLog[];
+  akun_sistem: AkunSistem[];
+  float_siswa?: FloatSiswa;
+}
 
 /**
  * Keuangan — untuk sekarang berisi satu hal saja: top-up tunai dengan
@@ -83,10 +113,22 @@ interface IsiVerifikasi {
 }
 
 export default function Bagian() {
-  const [tab, setTab] = useState<"verifikasi" | "tunai">("verifikasi");
+  const [tab, setTab] = useState<"verifikasi" | "tunai" | "rekonsiliasi">("verifikasi");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search).get("tab");
+      if (p === "rekonsiliasi" || p === "tunai" || p === "verifikasi") {
+        setTab(p);
+      }
+    }
+  }, []);
+
   const { data: dataV, galat: galatV, sedang: sedangV, muatUlang: muatUlangV } =
     useMuat<IsiVerifikasi>("/api/admin/keuangan/topup-verifikasi");
   const { data, galat, sedang, muatUlang } = useMuat<Isi>("/api/admin/keuangan/topup-tunai");
+  const { data: dataR, galat: galatR, sedang: sedangR, muatUlang: muatUlangR } =
+    useMuat<IsiRekon>("/api/admin/keuangan/rekonsiliasi");
 
   const [siswa, setSiswa] = useState<SiswaRingkas | null>(null);
   const [nominal, setNominal] = useState("");
@@ -98,9 +140,53 @@ export default function Bagian() {
   const [pesan, setPesan] = useState("");
   const [gagal, setGagal] = useState(false);
   const [sibuk, setSibuk] = useState(false);
+  const [sedangRekonManual, setSedangRekonManual] = useState(false);
+
+  async function jalankanRekonsiliasi() {
+    setSedangRekonManual(true);
+    setPesan("");
+    setGagal(false);
+    try {
+      const res = await api<{ selisih_rp?: number; jumlah_akun_siswa?: number; total_float_rp?: number }>(
+        "/api/admin/keuangan/rekonsiliasi",
+        { metode: "POST" }
+      );
+      if (res.ok) {
+        setPesan(
+          `Rekonsiliasi sukses! Selisih kas: ${rp(res.data?.selisih_rp ?? 0)} dari ${res.data?.jumlah_akun_siswa ?? 0} akun siswa diaudit.`
+        );
+        await muatUlangR();
+      } else {
+        setGagal(true);
+        setPesan(res.pesan || "Gagal rekonsiliasi kas.");
+      }
+    } catch {
+      setGagal(true);
+      setPesan("Gagal menghubungi server untuk rekonsiliasi.");
+    } finally {
+      setSedangRekonManual(false);
+    }
+  }
 
   const menungguV = dataV?.menunggu ?? [];
   const nilaiMenungguV = menungguV.reduce((a, m) => a + m.nominal_rp, 0);
+
+  const rekonLogs = dataR?.log ?? [];
+  const rekonLogTerakhir = rekonLogs[0] ?? null;
+  const akunSistem = dataR?.akun_sistem ?? [];
+  const floatSiswa = dataR?.float_siswa;
+
+  const totalKas = akunSistem
+    .filter((a) => a.jenis === "kas")
+    .reduce((sum, a) => sum + Math.abs(a.saldo_rp), 0);
+
+  const totalPendapatan = akunSistem
+    .filter((a) => a.jenis === "pendapatan")
+    .reduce((sum, a) => sum + Math.max(0, a.saldo_rp), 0);
+
+  const totalFloat = floatSiswa?.total_float_rp ?? rekonLogTerakhir?.total_float_rp ?? 0;
+  const jumlahSiswa = floatSiswa?.jumlah_siswa ?? rekonLogTerakhir?.jumlah_akun_siswa ?? 0;
+  const selisihKas = rekonLogTerakhir?.selisih_rp ?? 0;
 
   async function putusVerifikasi(id: number, aksi: "setujui" | "tolak", alasan?: string) {
     setSibuk(true); setPesan(""); setGagal(false);
@@ -158,7 +244,7 @@ export default function Bagian() {
         <div>
           <h1>Keuangan</h1>
           <div className="sub">
-            Verifikasi bukti transfer orang tua & persetujuan top-up tunai dua orang
+            Verifikasi bukti transfer orang tua, persetujuan top-up tunai dua orang &amp; audit rekonsiliasi kas
           </div>
         </div>
         <div className="right">
@@ -168,6 +254,7 @@ export default function Bagian() {
             onClick={() => {
               void muatUlangV();
               void muatUlang();
+              void muatUlangR();
             }}
           >
             Muat ulang
@@ -175,11 +262,11 @@ export default function Bagian() {
         </div>
       </div>
 
-      {galat || galatV ? <div className="demo" style={{ borderColor: "var(--crit)" }}>{galat || galatV}</div> : null}
+      {galat || galatV || galatR ? <div className="demo" style={{ borderColor: "var(--crit)" }}>{galat || galatV || galatR}</div> : null}
       {pesan ? <div className={gagal ? "a-err" : "a-ok"} style={{ marginBottom: 14 }}>{pesan}</div> : null}
 
       {/* Tab Switcher */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 18, borderBottom: "1px solid var(--border)", paddingBottom: 10 }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 18, borderBottom: "1px solid var(--border)", paddingBottom: 10, flexWrap: "wrap" }}>
         <button
           type="button"
           className={`btn ${tab === "verifikasi" ? "pri" : ""}`}
@@ -223,6 +310,29 @@ export default function Bagian() {
               }}
             >
               {menunggu.length}
+            </span>
+          ) : null}
+        </button>
+
+        <button
+          type="button"
+          className={`btn ${tab === "rekonsiliasi" ? "pri" : ""}`}
+          onClick={() => { setTab("rekonsiliasi"); setPesan(""); }}
+        >
+          ⚖️ Rekonsiliasi &amp; Audit Kas
+          {dataR?.log?.[0] && (dataR.log[0].selisih_rp ?? 0) !== 0 ? (
+            <span
+              style={{
+                marginLeft: 8,
+                background: "#ef4444",
+                color: "#fff",
+                borderRadius: 10,
+                padding: "2px 7px",
+                fontSize: 11,
+                fontWeight: 700,
+              }}
+            >
+              Selisih!
             </span>
           ) : null}
         </button>
@@ -478,7 +588,7 @@ export default function Bagian() {
             </div>
           </Panel>
         </>
-      ) : (
+      ) : tab === "tunai" ? (
         /* Tab Top-Up Tunai Petugas */
         <>
           <div className="kpis">
@@ -611,6 +721,170 @@ export default function Bagian() {
                 </tbody>
               </table>
             </div>
+          </Panel>
+        </>
+      ) : (
+        /* Tab 3: Rekonsiliasi & Audit Kas */
+        <>
+          <div className="kpis">
+            <Tile
+              label="Status Keseimbangan Kas"
+              value={
+                rekonLogTerakhir
+                  ? selisihKas === 0
+                    ? "Seimbang (Rp 0)"
+                    : `Selisih ${rp(selisihKas)}`
+                  : "Belum Pernah Sync"
+              }
+              valueStyle={
+                rekonLogTerakhir && selisihKas === 0
+                  ? { color: "var(--good-text, #10b981)" }
+                  : rekonLogTerakhir
+                  ? { color: "var(--crit-text, #ef4444)" }
+                  : { color: "var(--warn-text, #f59e0b)" }
+              }
+              sub={
+                rekonLogTerakhir
+                  ? selisihKas === 0
+                    ? `Audit terakhir: ${waktuSingkat(rekonLogTerakhir.waktu)}`
+                    : "Ditemukan perbedaan kas dan ledger"
+                  : "Silakan jalankan pencocokan pertama"
+              }
+            />
+            <Tile
+              label="Total Float Siswa"
+              value={rp(totalFloat)}
+              sub={`${jumlahSiswa} dompet santri aktif`}
+            />
+            <Tile
+              label="Total Kas Terhimpun"
+              value={rp(totalKas)}
+              sub="Payment Gateway & Kas Tunai TU"
+            />
+            <Tile
+              label="Total Omzet Layanan"
+              value={rp(totalPendapatan)}
+              sub="Kantin, Laundry, Vending"
+            />
+          </div>
+
+          <Panel
+            judul="Pusat Rekonsiliasi Kas & Audit Double-Entry"
+            sub="Pencocokan matematis antara saldo kas masuk, omzet layanan, dan uang mengendap siswa (F-15)"
+            aksi={
+              <button
+                type="button"
+                className="btn pri"
+                disabled={sedangRekonManual || sedangR}
+                onClick={() => void jalankanRekonsiliasi()}
+              >
+                {sedangRekonManual ? "Mencocokkan Ledger…" : "⚖️ Cocokkan Kas Sekarang"}
+              </button>
+            }
+          >
+            <p style={{ margin: "0 0 14px", color: "var(--muted)", fontSize: 13, lineHeight: 1.6 }}>
+              Sistem keuangan Semesta Smart Campus menggunakan pembukuan berpasangan (<i>double-entry bookkeeping</i>).
+              Setiap kali orang tua atau kasir melakukan top-up, uang dicatat pada akun Kas (aset) dan Dompet Siswa (kewajiban/float).
+              Saat kartu di-tap pada terminal kantin, laundry, atau vending, saldo siswa berkurang dan pendapatan unit diakui.
+              Rekonsiliasi ini memastikan <b>rumus kekekalan kas terpenuhi</b>: <code>Kas Terhimpun = Float Siswa + Total Omzet Pendapatan</code> tanpa kebocoran saldo.
+            </p>
+          </Panel>
+
+          <Panel judul="Saldo Buku Besar Akun Sistem" sub="Buku besar kas sekolah & pendapatan masing-masing unit layanan">
+            <div className="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Jenis Akun</th>
+                    <th>Nama Akun Ledger</th>
+                    <th className="num">Saldo Akumulasi</th>
+                    <th className="num">Jumlah Entri Jurnal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {akunSistem.map((a, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <Badge warna={a.jenis === "kas" ? "info" : a.jenis === "pendapatan" ? "good" : "mute"}>
+                          {a.jenis.toUpperCase()}
+                        </Badge>
+                      </td>
+                      <td><b>{a.nama}</b></td>
+                      <td className="num">
+                        <b>{rp(Math.abs(a.saldo_rp))}</b>
+                        {a.saldo_rp < 0 ? <span className="p-note" style={{ marginLeft: 6 }}>(debit)</span> : null}
+                      </td>
+                      <td className="num">{a.jumlah_entri} transaksi</td>
+                    </tr>
+                  ))}
+                  <tr style={{ background: "rgba(16, 185, 129, 0.06)" }}>
+                    <td><Badge warna="good">KEWAJIBAN</Badge></td>
+                    <td><b>Dompet Santri (Total Float Kartu Siswa)</b></td>
+                    <td className="num"><b>{rp(totalFloat)}</b></td>
+                    <td className="num">{jumlahSiswa} dompet aktif</td>
+                  </tr>
+                  {akunSistem.length === 0 && !sedangR ? (
+                    <tr>
+                      <td colSpan={4} className="p-note" style={{ textAlign: "center", padding: 20 }}>
+                        Belum ada data buku besar.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+            <CatatanKaki>
+              Data saldo di atas ditarik langsung dari view <code>saldo_ledger</code> PostgreSQL yang menghitung agregat riil tabel <code>ledger_entri</code>.
+            </CatatanKaki>
+          </Panel>
+
+          <Panel judul="Riwayat Audit Rekonsiliasi Kas" sub="30 audit terakhir (cron otomatis malam & manual)">
+            <div className="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Waktu Audit</th>
+                    <th className="num">Total Float Siswa</th>
+                    <th className="num">Selisih Kas</th>
+                    <th className="num">Akun Diaudit</th>
+                    <th>Keterangan / Pemicu</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rekonLogs.map((log) => (
+                    <tr key={log.id}>
+                      <td>
+                        <b>{waktuSingkat(log.waktu)}</b>
+                      </td>
+                      <td className="num">{rp(log.total_float_rp ?? 0)}</td>
+                      <td className="num">
+                        {log.selisih_rp === 0 ? (
+                          <Badge warna="good">Rp 0 (Klop)</Badge>
+                        ) : (
+                          <Badge warna="crit">{rp(log.selisih_rp ?? 0)}</Badge>
+                        )}
+                      </td>
+                      <td className="num">{log.jumlah_akun_siswa ?? "—"} siswa</td>
+                      <td>
+                        <span className="p-note">
+                          {log.keterangan === "auto malam" ? "🤖 Otomatis (Cron Malam)" : log.keterangan || "Manual Admin"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {rekonLogs.length === 0 && !sedangR ? (
+                    <tr>
+                      <td colSpan={5} className="p-note" style={{ textAlign: "center", padding: 20 }}>
+                        Belum ada riwayat rekonsiliasi yang tercatat.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+            <CatatanKaki>
+              Setiap malam pukul 23:55 WIB sistem otomatis menjalankan <code>rekonsiliasi_malam()</code> untuk mengunci pembukuan harian.
+            </CatatanKaki>
           </Panel>
         </>
       )}

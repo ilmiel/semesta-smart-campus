@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useMuat, waktuSingkat, sejak } from "@/lib/api";
+import { api, useMuat, waktuSingkat, sejak } from "@/lib/api";
 import { rp, ribuan } from "@/lib/format";
 
 interface Kpi {
@@ -104,6 +104,30 @@ export default function Bagian() {
   const [layananFilter, setLayananFilter] = useState<string>("semua");
   const [periodeChart, setPeriodeChart] = useState<"hari_ini" | "7_hari">("hari_ini");
   const [pingingDevice, setPingingDevice] = useState<string | null>(null);
+  const [sedangRekon, setSedangRekon] = useState(false);
+  const [notifRekon, setNotifRekon] = useState<string | null>(null);
+
+  async function handleRekonsiliasi() {
+    setSedangRekon(true);
+    setNotifRekon(null);
+    try {
+      const res = await api<{ selisih_rp?: number; jumlah_akun_siswa?: number; total_float_rp?: number }>(
+        "/api/admin/keuangan/rekonsiliasi",
+        { metode: "POST" }
+      );
+      if (res.ok) {
+        setNotifRekon("Rekonsiliasi berhasil! Ledger kas seimbang.");
+        await muatUlang();
+      } else {
+        setNotifRekon(res.pesan || "Gagal rekonsiliasi.");
+      }
+    } catch {
+      setNotifRekon("Koneksi gagal saat rekonsiliasi.");
+    } finally {
+      setSedangRekon(false);
+      setTimeout(() => setNotifRekon(null), 4000);
+    }
+  }
 
   if (galat) {
     return (
@@ -463,48 +487,93 @@ export default function Bagian() {
         {/* Kolom Kanan: Rekonsiliasi & Status Terminal (Col 10-12) */}
         <div className="lg:col-span-3 space-y-4 flex flex-col justify-between">
           {/* Mini Card 1: Rekonsiliasi Kas */}
-          <div className="bg-white dark:bg-[#121c17] rounded-2xl p-4 border border-slate-200/80 dark:border-[#1e2e26] shadow-xs transition-colors duration-150">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span className="text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-400 uppercase">
-                  REKONSILIASI KAS
+          <div className="bg-white dark:bg-[#121c17] rounded-2xl p-4 border border-slate-200/80 dark:border-[#1e2e26] shadow-xs transition-colors duration-150 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${
+                    k.rekonsiliasi_terakhir === null
+                      ? "bg-amber-400"
+                      : k.selisih_terakhir === 0
+                      ? "bg-emerald-500"
+                      : "bg-rose-500"
+                  }`}></span>
+                  <span className="text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-400 uppercase">
+                    REKONSILIASI KAS
+                  </span>
+                </div>
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                  k.rekonsiliasi_terakhir === null
+                    ? "bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400"
+                    : k.selisih_terakhir === 0
+                    ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400"
+                    : "bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400"
+                }`}>
+                  {k.rekonsiliasi_terakhir === null ? "⏱" : k.selisih_terakhir === 0 ? "✓" : "!"}
                 </span>
               </div>
-              <span className="w-6 h-6 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs">
-                ⏱
-              </span>
-            </div>
 
-            <div className="flex items-baseline justify-between mb-1">
-              <h3 className="text-base font-bold text-amber-700 dark:text-amber-400">
-                {k.rekonsiliasi_terakhir === null ? "Belum Sync" : k.selisih_terakhir === 0 ? "Tersinkron" : "Ada Selisih"}
-              </h3>
-              {k.rekonsiliasi_terakhir === null ? (
-                <span className="text-[10px] bg-slate-100 dark:bg-[#16221c] text-slate-600 dark:text-slate-300 font-semibold px-2 py-0.5 rounded-full">
-                  Audit Kasir
-                </span>
-              ) : (
-                <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold px-2 py-0.5 rounded-full">
-                  {waktuSingkat(k.rekonsiliasi_terakhir)}
-                </span>
+              <div className="flex items-baseline justify-between mb-1">
+                <h3 className={`text-base font-bold ${
+                  k.rekonsiliasi_terakhir === null
+                    ? "text-amber-700 dark:text-amber-400"
+                    : k.selisih_terakhir === 0
+                    ? "text-emerald-700 dark:text-emerald-400"
+                    : "text-rose-700 dark:text-rose-400"
+                }`}>
+                  {k.rekonsiliasi_terakhir === null ? "Belum Sync" : k.selisih_terakhir === 0 ? "Tersinkron" : "Ada Selisih"}
+                </h3>
+                {k.rekonsiliasi_terakhir === null ? (
+                  <span className="text-[10px] bg-slate-100 dark:bg-[#16221c] text-slate-600 dark:text-slate-300 font-semibold px-2 py-0.5 rounded-full">
+                    Audit Kasir
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold px-2 py-0.5 rounded-full">
+                    {waktuSingkat(k.rekonsiliasi_terakhir)}
+                  </span>
+                )}
+              </div>
+
+              <p className="text-[11px] text-slate-400 dark:text-slate-400 mb-2">
+                {k.selisih_terakhir !== null && k.selisih_terakhir !== 0
+                  ? `Selisih kas ${rp(k.selisih_terakhir)}`
+                  : k.rekonsiliasi_terakhir !== null
+                  ? "Saldo ledger & kas seimbang (0 selisih)"
+                  : "Ledger pencatatan kasir & gateway"}
+              </p>
+
+              {notifRekon && (
+                <div className="mb-2 p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-850 text-[11px] text-emerald-700 dark:text-emerald-300 font-medium leading-tight">
+                  {notifRekon}
+                </div>
               )}
             </div>
 
-            <p className="text-[11px] text-slate-400 dark:text-slate-400 mb-3">
-              {k.selisih_terakhir !== null && k.selisih_terakhir !== 0
-                ? `Selisih kas ${rp(k.selisih_terakhir)}`
-                : "Ledger pencatatan kasir & gateway"}
-            </p>
-
             <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-[#1e2e26]">
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">Ledger audit</span>
               <Link
-                href="/admin/keuangan"
-                className="px-3 py-1 bg-emerald-50 dark:bg-[#183427] hover:bg-emerald-100 dark:hover:bg-[#1f4232] text-[#0f553e] dark:text-emerald-300 text-xs font-semibold rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 transition"
+                href="/admin/keuangan?tab=rekonsiliasi"
+                className="text-[11px] text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition underline-offset-2 hover:underline"
               >
-                Cocokkan
+                Detail Ledger →
               </Link>
+              <button
+                type="button"
+                onClick={() => void handleRekonsiliasi()}
+                disabled={sedangRekon}
+                className="px-3 py-1 bg-emerald-50 dark:bg-[#183427] hover:bg-emerald-100 dark:hover:bg-[#1f4232] text-[#0f553e] dark:text-emerald-300 text-xs font-semibold rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 transition disabled:opacity-50 inline-flex items-center gap-1.5 active:scale-95"
+              >
+                {sedangRekon ? (
+                  <>
+                    <svg className="w-3 h-3 animate-spin text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <span>Mencocokkan...</span>
+                  </>
+                ) : (
+                  "Cocokkan"
+                )}
+              </button>
             </div>
           </div>
 
